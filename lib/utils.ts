@@ -27,15 +27,16 @@ export function getWeekNumber(date: Date): number {
 }
 
 export function getWeekStartEnd(date: Date): { start: Date; end: Date } {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
-  const start = new Date(d.setDate(diff))
-  start.setHours(0, 0, 0, 0)
-
+  // Create a date at midnight UTC for the given date
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const day = d.getUTCDay()
+  const diff = d.getUTCDate() - day + (day === 0 ? -6 : 1) // adjust when day is sunday
+  
+  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff, 0, 0, 0, 0))
+  
   const end = new Date(start)
-  end.setDate(end.getDate() + 6)
-  end.setHours(23, 59, 59, 999)
+  end.setUTCDate(end.getUTCDate() + 6)
+  end.setUTCHours(23, 59, 59, 999)
 
   return { start, end }
 }

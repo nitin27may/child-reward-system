@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
-import { Trophy, TrendingUp, Calendar, DollarSign, Clock, Target } from 'lucide-react'
+import { 
+  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie, AreaChart, Area 
+} from 'recharts'
+import { 
+  Trophy, TrendingUp, Calendar, DollarSign, Clock, Target, 
+  Zap, Gift, ArrowUpRight, ArrowDownRight, Sparkles, Star
+} from 'lucide-react'
 import { getDaysUntilChristmas } from '@/lib/utils'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -50,7 +56,12 @@ export default function DashboardPage() {
     try {
       const response = await fetch('/api/dashboard')
       const dashboardData = await response.json()
-      setData(dashboardData)
+      if (dashboardData.error) {
+        console.error('API Error:', dashboardData.error)
+        setData(null)
+      } else {
+        setData(dashboardData)
+      }
     } catch (error) {
       console.error('Error fetching dashboard:', error)
     } finally {
@@ -60,26 +71,45 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
-        <p className="text-lg text-sky-600">Loading dashboard...</p>
+      <div className="min-h-screen flex items-center justify-center pt-16 lg:pt-0">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg text-slate-600">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
 
-  if (!data) {
+  if (!data || !data.christmasFund) {
     return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
-        <p className="text-lg text-red-600">Failed to load dashboard</p>
+      <div className="min-h-screen flex items-center justify-center pt-16 lg:pt-0">
+        <Card className="max-w-md mx-4">
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="h-8 w-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Welcome to Reward Tracker!</h2>
+            <p className="text-slate-600 mb-6">Get started by setting up your reward system configuration.</p>
+            <Link href="/config">
+              <Button size="lg" className="w-full">
+                <Zap className="mr-2 h-5 w-5" />
+                Initialize System
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   const daysUntilChristmas = getDaysUntilChristmas()
-  const christmasProgress = data.christmasFund.percentage
+  const christmasProgress = Math.min(Math.max(data.christmasFund.percentage, 0), 100)
 
   const weeklyChartData = data.currentWeek.dailyData.map((day: any) => ({
     day: new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' }),
     points: day.screenTimeTotal,
+    bonuses: day.dailyBonuses,
+    deductions: Math.abs(day.dailyDeductions),
   }))
 
   const recentWeeksData = data.recentWeeks.slice(0, 8).reverse().map((week: any) => ({
@@ -88,299 +118,424 @@ export default function DashboardPage() {
     used: week.screenTimeUsed,
   }))
 
-  return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold text-sky-900 flex items-center gap-3">
-          <Trophy className="h-10 w-10 text-sky-500" />
-          Reward Dashboard
-        </h1>
-        <p className="text-sky-700 mt-2 text-lg">Track your progress on both reward tracks</p>
-      </div>
+  const behaviorPieData = [
+    { name: 'Bonuses', value: data.thisMonth.bonuses, fill: '#10b981' },
+    { name: 'Deductions', value: data.thisMonth.deductions, fill: '#ef4444' },
+  ].filter(item => item.value > 0)
 
-      <div className="grid gap-6">
-        {/* Quick Actions */}
-        <div className="flex gap-4">
-          <Link href="/tracking" className="flex-1">
-            <Button className="w-full h-20 text-lg" size="lg">
-              <Calendar className="mr-2 h-6 w-6" />
-              Add Daily Tracking
-            </Button>
-          </Link>
-          <Link href="/config" className="flex-1">
-            <Button variant="outline" className="w-full h-20 text-lg" size="lg">
-              Configure System
-            </Button>
-          </Link>
+  return (
+    <div className="min-h-screen bg-slate-50 pt-16 lg:pt-0">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-16 lg:top-0 z-40">
+        <div className="px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
+              <p className="text-slate-500 mt-1">
+                Week {data.currentWeek.weekNumber}, {data.currentWeek.year}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/tracking">
+                <Button className="flex-1 sm:flex-none">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Track Today
+                </Button>
+              </Link>
+              <Link href="/weekly">
+                <Button variant="outline" className="flex-1 sm:flex-none">
+                  Weekly Review
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Screen Points */}
+          <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-blue-100 text-sm font-medium">Screen Points</p>
+                  <p className="text-3xl font-bold mt-1 stat-number">{data.currentWeek.screenPoints}</p>
+                  <p className="text-blue-200 text-xs mt-1">This week</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Zap className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Screen Time Earned */}
+          <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-purple-100 text-sm font-medium">Screen Time</p>
+                  <p className="text-3xl font-bold mt-1 stat-number">{data.currentWeek.screenTimeEarned}</p>
+                  <p className="text-purple-200 text-xs mt-1">minutes earned</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Clock className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Christmas Fund */}
+          <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-emerald-100 text-sm font-medium">Christmas Fund</p>
+                  <p className="text-3xl font-bold mt-1 stat-number">${data.christmasFund.current.toFixed(0)}</p>
+                  <p className="text-emerald-200 text-xs mt-1">of ${data.christmasFund.goal} goal</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Gift className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Days Until Christmas */}
+          <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-amber-500 to-orange-500 text-white">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-amber-100 text-sm font-medium">Christmas</p>
+                  <p className="text-3xl font-bold mt-1 stat-number">{daysUntilChristmas}</p>
+                  <p className="text-amber-200 text-xs mt-1">days to go</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                  <Star className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Current Week Screen Time */}
-        <Card className="border-sky-200 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-sky-50 to-cyan-50">
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <Clock className="h-6 w-6 text-sky-600" />
-              This Week&apos;s Screen Time
-            </CardTitle>
-            <CardDescription className="text-base">
-              Week {data.currentWeek.weekNumber}, {data.currentWeek.year}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid md:grid-cols-3 gap-6 mb-6">
-              <div className="text-center p-4 bg-sky-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Screen Points</div>
-                <div className="text-4xl font-bold text-sky-600">
-                  {data.currentWeek.screenPoints}
+        {/* Main Content Grid */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Weekly Progress Chart */}
+          <Card className="lg:col-span-2 border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">Weekly Progress</CardTitle>
+                  <CardDescription>Daily points breakdown</CardDescription>
                 </div>
-                <div className="text-xs text-gray-500 mt-1">points earned</div>
-              </div>
-              <div className="text-center p-4 bg-cyan-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Screen Time Earned</div>
-                <div className="text-4xl font-bold text-cyan-600">
-                  {data.currentWeek.screenTimeEarned}
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    Points
+                  </span>
                 </div>
-                <div className="text-xs text-gray-500 mt-1">minutes</div>
               </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Days Until Weekend</div>
-                <div className="text-4xl font-bold text-blue-600">
-                  {data.currentWeek.daysUntilWeekend}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">days remaining</div>
-              </div>
-            </div>
-
-            {weeklyChartData.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-700">Daily Progress This Week</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={weeklyChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" />
-                    <XAxis dataKey="day" stroke="#0c4a6e" />
-                    <YAxis stroke="#0c4a6e" />
+            </CardHeader>
+            <CardContent>
+              {weeklyChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={weeklyChartData}>
+                    <defs>
+                      <linearGradient id="colorPoints" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="day" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#f0f9ff',
-                        border: '1px solid #0ea5e9',
+                        backgroundColor: '#fff',
+                        border: '1px solid #e2e8f0',
                         borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       }}
                     />
-                    <Bar dataKey="points" fill="#0ea5e9" radius={[8, 8, 0, 0]}>
-                      {weeklyChartData.map((entry: any, index: number) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={entry.points < 0 ? '#ef4444' : '#0ea5e9'}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
+                    <Area
+                      type="monotone"
+                      dataKey="points"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#colorPoints)"
+                    />
+                  </AreaChart>
                 </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Christmas Fund */}
-        <Card className="border-cyan-200 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-cyan-50 to-sky-50">
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <DollarSign className="h-6 w-6 text-cyan-600" />
-              Christmas Fund 2025
-            </CardTitle>
-            <CardDescription className="text-base">
-              {daysUntilChristmas} days until Christmas
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div className="text-center p-6 bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Current Amount</div>
-                <div className="text-5xl font-bold text-cyan-600">
-                  ${data.christmasFund.current.toFixed(2)}
+              ) : (
+                <div className="h-[280px] flex items-center justify-center text-slate-500">
+                  <p>No data for this week yet. Start tracking!</p>
                 </div>
-                <div className="text-sm text-gray-500 mt-2">
-                  {data.christmasFund.points} points
-                </div>
-              </div>
-              <div className="text-center p-6 bg-gradient-to-br from-sky-50 to-sky-100 rounded-lg">
-                <div className="text-sm text-gray-600 mb-2">Goal</div>
-                <div className="text-5xl font-bold text-sky-600">
-                  ${data.christmasFund.goal.toFixed(2)}
-                </div>
-                <div className="text-sm text-gray-500 mt-2">
-                  ${(data.christmasFund.goal - data.christmasFund.current).toFixed(2)} remaining
-                </div>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Progress to Goal</span>
-                <span className="font-semibold">{christmasProgress}%</span>
-              </div>
-              <div className="w-full h-8 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    data.christmasFund.current < 0
-                      ? 'bg-red-500'
-                      : 'bg-gradient-to-r from-cyan-500 to-sky-500'
-                  }`}
-                  style={{
-                    width: `${Math.min(Math.max(christmasProgress, 0), 100)}%`,
-                  }}
-                />
-              </div>
-              {data.christmasFund.current < 0 && (
-                <p className="text-sm text-red-600 font-semibold text-center mt-2">
-                  In Debt: Must earn back to positive!
-                </p>
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
+          {/* Christmas Fund Progress */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Gift className="h-5 w-5 text-emerald-600" />
+                Christmas Fund
+              </CardTitle>
+              <CardDescription>{daysUntilChristmas} days until Christmas</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Circular Progress */}
+                <div className="relative mx-auto w-40 h-40">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="#e2e8f0"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="url(#progressGradient)"
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${christmasProgress * 2.51} 251`}
+                      className="transition-all duration-1000"
+                    />
+                    <defs>
+                      <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#34d399" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl font-bold text-slate-900">{christmasProgress}%</span>
+                    <span className="text-xs text-slate-500">complete</span>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center p-3 bg-slate-50 rounded-lg">
+                    <p className="text-2xl font-bold text-emerald-600">${data.christmasFund.current.toFixed(0)}</p>
+                    <p className="text-xs text-slate-500">Saved</p>
+                  </div>
+                  <div className="text-center p-3 bg-slate-50 rounded-lg">
+                    <p className="text-2xl font-bold text-slate-600">${(data.christmasFund.goal - data.christmasFund.current).toFixed(0)}</p>
+                    <p className="text-xs text-slate-500">Remaining</p>
+                  </div>
+                </div>
+
+                {data.christmasFund.current < 0 && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-center">
+                    <p className="text-sm text-red-700 font-medium">⚠️ In Debt - Earn points to recover!</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tabs Section */}
         <Tabs defaultValue="monthly" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="monthly">Monthly Summary</TabsTrigger>
-            <TabsTrigger value="trends">Behavior Trends</TabsTrigger>
-            <TabsTrigger value="history">Weekly History</TabsTrigger>
+          <TabsList className="w-full sm:w-auto bg-white border border-slate-200 p-1 rounded-lg">
+            <TabsTrigger value="monthly" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              Monthly Stats
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              Behavior Trends
+            </TabsTrigger>
+            <TabsTrigger value="history" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              History
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="monthly">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  This Month&apos;s Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-sm text-gray-600">Screen Points</div>
-                    <div className="text-3xl font-bold text-sky-600">
-                      {data.thisMonth.screenPoints}
+          <TabsContent value="monthly" className="mt-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-0 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <Zap className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Screen Points</p>
+                      <p className="text-2xl font-bold text-slate-900">{data.thisMonth.screenPoints}</p>
                     </div>
                   </div>
-                  <div className="text-center p-4 border rounded-lg">
-                    <div className="text-sm text-gray-600">Christmas Fund</div>
-                    <div className="text-3xl font-bold text-cyan-600">
-                      {data.thisMonth.christmasFundPoints}
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
+                      <DollarSign className="h-6 w-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Fund Points</p>
+                      <p className="text-2xl font-bold text-slate-900">{data.thisMonth.christmasFundPoints}</p>
                     </div>
                   </div>
-                  <div className="text-center p-4 border rounded-lg border-green-200">
-                    <div className="text-sm text-gray-600">Bonuses</div>
-                    <div className="text-3xl font-bold text-green-600">
-                      +{data.thisMonth.bonuses}
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                      <ArrowUpRight className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Bonuses</p>
+                      <p className="text-2xl font-bold text-green-600">+{data.thisMonth.bonuses}</p>
                     </div>
                   </div>
-                  <div className="text-center p-4 border rounded-lg border-red-200">
-                    <div className="text-sm text-gray-600">Deductions</div>
-                    <div className="text-3xl font-bold text-red-600">
-                      -{data.thisMonth.deductions}
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                      <ArrowDownRight className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-500">Deductions</p>
+                      <p className="text-2xl font-bold text-red-600">-{data.thisMonth.deductions}</p>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          <TabsContent value="trends">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
-                  Behavior Analysis
-                </CardTitle>
-                <CardDescription>Identify strengths and areas for improvement</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold text-green-700 mb-4">Top Bonuses Earned</h3>
-                    {data.behaviorTrends.commonBonuses.length > 0 ? (
-                      <div className="space-y-2">
-                        {data.behaviorTrends.commonBonuses.map((bonus, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center p-3 bg-green-50 rounded-lg"
-                          >
-                            <span className="text-sm">{bonus.category}</span>
-                            <span className="font-bold text-green-600">{bonus.count}×</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">No bonuses recorded this month</p>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-red-700 mb-4">Common Deductions</h3>
-                    {data.behaviorTrends.commonDeductions.length > 0 ? (
-                      <div className="space-y-2">
-                        {data.behaviorTrends.commonDeductions.map((deduction, index) => (
-                          <div
-                            key={index}
-                            className="flex justify-between items-center p-3 bg-red-50 rounded-lg"
-                          >
-                            <span className="text-sm">{deduction.category}</span>
-                            <span className="font-bold text-red-600">{deduction.count}×</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500">
-                        No deductions recorded this month
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="trends" className="mt-4">
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Pie Chart */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Behavior Balance</CardTitle>
+                  <CardDescription>Bonuses vs Deductions</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {behaviorPieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={behaviorPieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {behaviorPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[200px] flex items-center justify-center text-slate-500">
+                      <p>No behavior data yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Bonuses List */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ArrowUpRight className="h-5 w-5 text-green-600" />
+                    Top Bonuses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.behaviorTrends.commonBonuses.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.behaviorTrends.commonBonuses.map((bonus, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                          <span className="text-sm text-slate-700">{bonus.category}</span>
+                          <span className="font-bold text-green-600">{bonus.count}×</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 text-center py-8">No bonuses this month</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Deductions List */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <ArrowDownRight className="h-5 w-5 text-red-600" />
+                    Common Deductions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {data.behaviorTrends.commonDeductions.length > 0 ? (
+                    <div className="space-y-3">
+                      {data.behaviorTrends.commonDeductions.map((deduction, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                          <span className="text-sm text-slate-700">{deduction.category}</span>
+                          <span className="font-bold text-red-600">{deduction.count}×</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 text-center py-8">No deductions this month 🎉</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Screen Time History</CardTitle>
-                <CardDescription>Compare earned vs. used screen time</CardDescription>
+          <TabsContent value="history" className="mt-4">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Screen Time History</CardTitle>
+                <CardDescription>Earned vs Used across recent weeks</CardDescription>
               </CardHeader>
               <CardContent>
                 {recentWeeksData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={recentWeeksData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" />
-                      <XAxis dataKey="week" stroke="#0c4a6e" />
-                      <YAxis stroke="#0c4a6e" />
+                    <BarChart data={recentWeeksData} barGap={8}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="week" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: '#f0f9ff',
-                          border: '1px solid #0ea5e9',
+                          backgroundColor: '#fff',
+                          border: '1px solid #e2e8f0',
                           borderRadius: '8px',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                         }}
                       />
                       <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="earned"
-                        stroke="#0ea5e9"
-                        strokeWidth={2}
-                        name="Earned (min)"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="used"
-                        stroke="#06b6d4"
-                        strokeWidth={2}
-                        name="Used (min)"
-                      />
-                    </LineChart>
+                      <Bar dataKey="earned" fill="#3b82f6" name="Earned (min)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="used" fill="#8b5cf6" name="Used (min)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-center text-gray-500 py-8">
-                    No weekly review data yet
-                  </p>
+                  <div className="h-[300px] flex items-center justify-center text-slate-500">
+                    <p>Complete weekly reviews to see history</p>
+                  </div>
                 )}
               </CardContent>
             </Card>

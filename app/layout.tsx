@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Child Reward System - Dual Track Earning",
+  title: "Reward Tracker - Child Reward System",
   description: "Track weekly screen time and Christmas fund with a comprehensive reward system",
 };
 
@@ -26,10 +26,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-slate-50`}
       >
-        <Navigation />
-        <main>{children}</main>
+        <div className="flex min-h-screen">
+          <Navigation />
+          <main className="flex-1 lg:pl-64">
+            <div className="min-h-screen">
+              {children}
+            </div>
+          </main>
+        </div>
       </body>
     </html>
   );

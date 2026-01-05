@@ -6,7 +6,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Settings, Plus, Trash2, Edit2, Save, X } from 'lucide-react'
+import { 
+  Settings, Plus, Trash2, Edit2, Save, X, Zap, Gift, 
+  Clock, DollarSign, Target, CheckCircle, Sparkles
+} from 'lucide-react'
 
 interface Config {
   id: number
@@ -64,7 +67,6 @@ export default function ConfigPage() {
 
   const fetchAll = async () => {
     try {
-      // Check if initialized
       const initResponse = await fetch('/api/initialize')
       const initData = await initResponse.json()
       setInitialized(initData.initialized)
@@ -250,33 +252,63 @@ export default function ConfigPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
-        <p className="text-lg text-sky-600">Loading configuration...</p>
+      <div className="min-h-screen flex items-center justify-center pt-16 lg:pt-0">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg text-slate-600">Loading configuration...</p>
+        </div>
       </div>
     )
   }
 
   if (!initialized) {
     return (
-      <div className="container mx-auto p-6 max-w-2xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Initialize System</CardTitle>
-            <CardDescription>
-              The system needs to be initialized with default categories, bonuses, and deductions.
+      <div className="min-h-screen flex items-center justify-center pt-16 lg:pt-0 px-4">
+        <Card className="max-w-lg w-full border-0 shadow-lg">
+          <CardHeader className="text-center pb-2">
+            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="h-8 w-8 text-blue-600" />
+            </div>
+            <CardTitle className="text-2xl">Initialize Reward System</CardTitle>
+            <CardDescription className="text-base">
+              Set up your reward system with default categories and settings
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-gray-600">
-              This will create:
-            </p>
-            <ul className="list-disc list-inside mb-6 text-gray-600 space-y-1">
-              <li>5 default categories (Health, Screen Discipline, Self-Study, Household, Behavior)</li>
-              <li>5 bonus presets (Perfect day, Extra help, etc.)</li>
-              <li>7 deduction presets (Disrespectful behavior, Refused chore, etc.)</li>
-              <li>Default configuration settings</li>
-            </ul>
-            <Button onClick={handleInitialize} disabled={saving} size="lg">
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <Target className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">5 Default Categories</p>
+                  <p className="text-sm text-slate-500">Health, Screen Discipline, Self-Study, Household, Behavior</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                  <Plus className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">5 Bonus Presets</p>
+                  <p className="text-sm text-slate-500">Perfect day, Extra help, Homework ahead, and more</p>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <X className="h-4 w-4 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">7 Deduction Presets</p>
+                  <p className="text-sm text-slate-500">Disrespectful behavior, Refused chore, and more</p>
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={handleInitialize} disabled={saving} size="lg" className="w-full">
+              <Zap className="mr-2 h-5 w-5" />
               {saving ? 'Initializing...' : 'Initialize System'}
             </Button>
           </CardContent>
@@ -286,42 +318,60 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-sky-900 flex items-center gap-2">
-          <Settings className="h-8 w-8" />
-          System Configuration
-        </h1>
-        <p className="text-sky-700 mt-2">
-          Configure all aspects of the reward system
-        </p>
-      </div>
-
-      {message && (
-        <div className={`mb-4 p-4 rounded-lg ${
-          message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-        }`}>
-          {message}
+    <div className="min-h-screen bg-slate-50 pt-16 lg:pt-0">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-16 lg:top-0 z-40">
+        <div className="px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Settings</h1>
+              <p className="text-slate-500 mt-1">Configure your reward system</p>
+            </div>
+          </div>
         </div>
-      )}
+      </header>
 
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="categories">Categories</TabsTrigger>
-          <TabsTrigger value="bonuses">Bonuses</TabsTrigger>
-          <TabsTrigger value="deductions">Deductions</TabsTrigger>
-        </TabsList>
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
+        {/* Success/Error Message */}
+        {message && (
+          <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
+            message.includes('success') 
+              ? 'bg-green-50 border border-green-200 text-green-700' 
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}>
+            {message.includes('success') ? <CheckCircle className="h-5 w-5" /> : <X className="h-5 w-5" />}
+            {message}
+          </div>
+        )}
 
-        <TabsContent value="general">
-          <div className="grid gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversion Rates</CardTitle>
-                <CardDescription>Configure how points convert to rewards</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+        <Tabs defaultValue="general" className="w-full">
+          <TabsList className="w-full sm:w-auto bg-white border border-slate-200 p-1 rounded-lg mb-6">
+            <TabsTrigger value="general" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              General
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              Categories
+            </TabsTrigger>
+            <TabsTrigger value="bonuses" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              Bonuses
+            </TabsTrigger>
+            <TabsTrigger value="deductions" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+              Deductions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="general">
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Screen Time Settings */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-blue-600" />
+                    Screen Time Settings
+                  </CardTitle>
+                  <CardDescription>Configure screen time rewards</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="pointsToMinutes">Points to Minutes Ratio</Label>
                     <Input
@@ -331,24 +381,38 @@ export default function ConfigPage() {
                       min="0"
                       value={config?.pointsToMinutes ?? 0.5}
                       onChange={(e) => setConfig({ ...config!, pointsToMinutes: parseFloat(e.target.value) })}
+                      className="text-lg"
                     />
-                    <p className="text-sm text-gray-500">
-                      Example: {config?.pointsToMinutes} min/point = 10 pts = {(10 * (config?.pointsToMinutes ?? 0.5)).toFixed(1)} minutes
+                    <p className="text-sm text-slate-500">
+                      10 points = {(10 * (config?.pointsToMinutes ?? 0.5)).toFixed(1)} minutes of screen time
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="maxWeeklyScreenTime">Max Weekly Screen Time (min)</Label>
+                    <Label htmlFor="maxWeeklyScreenTime">Max Weekly Screen Time</Label>
                     <Input
                       id="maxWeeklyScreenTime"
                       type="number"
                       min="0"
                       value={config?.maxWeeklyScreenTime ?? 60}
                       onChange={(e) => setConfig({ ...config!, maxWeeklyScreenTime: parseInt(e.target.value) })}
+                      className="text-lg"
                     />
-                    <p className="text-sm text-gray-500">Maximum minutes per week</p>
+                    <p className="text-sm text-slate-500">Maximum minutes earned per week</p>
                   </div>
+                </CardContent>
+              </Card>
 
+              {/* Christmas Fund Settings */}
+              <Card className="border-0 shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-emerald-600" />
+                    Christmas Fund Settings
+                  </CardTitle>
+                  <CardDescription>Configure Christmas savings</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="pointsToDollars">Points to Dollars Ratio</Label>
                     <Input
@@ -358,9 +422,10 @@ export default function ConfigPage() {
                       min="0"
                       value={config?.pointsToDollars ?? 1.0}
                       onChange={(e) => setConfig({ ...config!, pointsToDollars: parseFloat(e.target.value) })}
+                      className="text-lg"
                     />
-                    <p className="text-sm text-gray-500">
-                      Example: ${config?.pointsToDollars}/point = 100 pts = ${(100 * (config?.pointsToDollars ?? 1.0)).toFixed(2)}
+                    <p className="text-sm text-slate-500">
+                      100 points = ${(100 * (config?.pointsToDollars ?? 1.0)).toFixed(2)}
                     </p>
                   </div>
 
@@ -372,98 +437,91 @@ export default function ConfigPage() {
                       min="0"
                       value={config?.christmasGoal ?? 500}
                       onChange={(e) => setConfig({ ...config!, christmasGoal: parseFloat(e.target.value) })}
+                      className="text-lg"
                     />
-                    <p className="text-sm text-gray-500">Target amount for Christmas 2025</p>
+                    <p className="text-sm text-slate-500">Target amount for Christmas 2025</p>
                   </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="mt-6">
+              <Button onClick={handleSaveConfig} disabled={saving} size="lg">
+                <Save className="mr-2 h-4 w-4" />
+                {saving ? 'Saving...' : 'Save Settings'}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Point Categories</CardTitle>
+                    <CardDescription>Daily earning categories</CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setEditingCategory({
+                      id: 0,
+                      name: '',
+                      key: '',
+                      icon: '⭐',
+                      maxPoints: 3,
+                      orderIndex: categories.length,
+                      isActive: true,
+                    })}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add Category
+                  </Button>
                 </div>
-
-                <Button onClick={handleSaveConfig} disabled={saving}>
-                  {saving ? 'Saving...' : 'Save General Settings'}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Point Categories
-                <Button
-                  size="sm"
-                  onClick={() => setEditingCategory({
-                    id: 0,
-                    name: '',
-                    key: '',
-                    icon: '⭐',
-                    maxPoints: 3,
-                    orderIndex: categories.length,
-                    isActive: true,
-                  })}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Category
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Configure daily point categories (what can be earned each day)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {categories.map((category) => (
-                  <div key={category.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{category.icon}</span>
-                      <div>
-                        <div className="font-medium">{category.name}</div>
-                        <div className="text-sm text-gray-500">Max: {category.maxPoints} points</div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {categories.map((category) => (
+                    <div key={category.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <span className="text-3xl">{category.icon}</span>
+                        <div>
+                          <div className="font-medium text-slate-900">{category.name}</div>
+                          <div className="text-sm text-slate-500">Max: {category.maxPoints} pts</div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingCategory(category)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(category.id)}>
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingCategory(category)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteCategory(category.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              {editingCategory && (
-                <div className="mt-6 p-4 border-2 border-sky-200 rounded-lg bg-sky-50">
-                  <h3 className="font-semibold mb-4">
-                    {editingCategory.id ? 'Edit Category' : 'New Category'}
-                  </h3>
-                  <div className="grid gap-4">
-                    <div>
-                      <Label>Name</Label>
-                      <Input
-                        value={editingCategory.name}
-                        onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                        placeholder="e.g., Health & Nutrition"
-                      />
-                    </div>
-                    <div>
-                      <Label>Key (unique identifier)</Label>
-                      <Input
-                        value={editingCategory.key}
-                        onChange={(e) => setEditingCategory({ ...editingCategory, key: e.target.value })}
-                        placeholder="e.g., healthNutrition"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
+                {editingCategory && (
+                  <div className="mt-6 p-6 border-2 border-blue-200 rounded-xl bg-blue-50">
+                    <h3 className="font-semibold text-lg mb-4">
+                      {editingCategory.id ? 'Edit Category' : 'New Category'}
+                    </h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Name</Label>
+                        <Input
+                          value={editingCategory.name}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                          placeholder="e.g., Health & Nutrition"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Key (unique)</Label>
+                        <Input
+                          value={editingCategory.key}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, key: e.target.value })}
+                          placeholder="e.g., healthNutrition"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label>Icon (emoji)</Label>
                         <Input
                           value={editingCategory.icon}
@@ -471,7 +529,7 @@ export default function ConfigPage() {
                           placeholder="🥗"
                         />
                       </div>
-                      <div>
+                      <div className="space-y-2">
                         <Label>Max Points</Label>
                         <Input
                           type="number"
@@ -479,222 +537,204 @@ export default function ConfigPage() {
                           onChange={(e) => setEditingCategory({ ...editingCategory, maxPoints: parseInt(e.target.value) })}
                         />
                       </div>
+                      <div className="sm:col-span-2 space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          value={editingCategory.description || ''}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
+                          placeholder="Brief description"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={editingCategory.description || ''}
-                        onChange={(e) => setEditingCategory({ ...editingCategory, description: e.target.value })}
-                        placeholder="Brief description"
-                      />
-                    </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-4">
                       <Button onClick={() => handleSaveCategory(editingCategory)}>
-                        <Save className="h-4 w-4 mr-1" /> Save
+                        <Save className="h-4 w-4 mr-2" /> Save
                       </Button>
                       <Button variant="outline" onClick={() => setEditingCategory(null)}>
-                        <X className="h-4 w-4 mr-1" /> Cancel
+                        Cancel
                       </Button>
                     </div>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="bonuses">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Bonus Presets</CardTitle>
+                    <CardDescription>Quick-add positive behaviors</CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setEditingBonus({
+                      id: 0,
+                      label: '',
+                      points: 2,
+                      orderIndex: bonuses.length,
+                      isActive: true,
+                    })}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add Bonus
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {bonuses.map((bonus) => (
+                    <div key={bonus.id} className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200">
+                      <div>
+                        <div className="font-medium text-slate-900">{bonus.label}</div>
+                        <div className="text-sm font-bold text-green-600">+{bonus.points} points</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingBonus(bonus)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteBonus(bonus.id)}>
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-        <TabsContent value="bonuses">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Bonus Presets
-                <Button
-                  size="sm"
-                  onClick={() => setEditingBonus({
-                    id: 0,
-                    label: '',
-                    points: 2,
-                    orderIndex: bonuses.length,
-                    isActive: true,
-                  })}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Bonus
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Quick-add bonus buttons for positive behaviors
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {bonuses.map((bonus) => (
-                  <div key={bonus.id} className="flex items-center justify-between p-4 border rounded-lg border-green-200 bg-green-50">
-                    <div>
-                      <div className="font-medium">{bonus.label}</div>
-                      <div className="text-sm text-green-700 font-semibold">+{bonus.points} points</div>
+                {editingBonus && (
+                  <div className="mt-6 p-6 border-2 border-green-200 rounded-xl bg-green-50">
+                    <h3 className="font-semibold text-lg mb-4">
+                      {editingBonus.id ? 'Edit Bonus' : 'New Bonus'}
+                    </h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Label</Label>
+                        <Input
+                          value={editingBonus.label}
+                          onChange={(e) => setEditingBonus({ ...editingBonus, label: e.target.value })}
+                          placeholder="e.g., Perfect sugar-free day"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Points (positive)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={editingBonus.points}
+                          onChange={(e) => setEditingBonus({ ...editingBonus, points: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <div className="sm:col-span-2 space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          value={editingBonus.description || ''}
+                          onChange={(e) => setEditingBonus({ ...editingBonus, description: e.target.value })}
+                          placeholder="Brief description"
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingBonus(bonus)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteBonus(bonus.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {editingBonus && (
-                <div className="mt-6 p-4 border-2 border-green-200 rounded-lg bg-green-50">
-                  <h3 className="font-semibold mb-4">
-                    {editingBonus.id ? 'Edit Bonus' : 'New Bonus'}
-                  </h3>
-                  <div className="grid gap-4">
-                    <div>
-                      <Label>Label</Label>
-                      <Input
-                        value={editingBonus.label}
-                        onChange={(e) => setEditingBonus({ ...editingBonus, label: e.target.value })}
-                        placeholder="e.g., Perfect sugar-free day"
-                      />
-                    </div>
-                    <div>
-                      <Label>Points (positive)</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={editingBonus.points}
-                        onChange={(e) => setEditingBonus({ ...editingBonus, points: parseInt(e.target.value) })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={editingBonus.description || ''}
-                        onChange={(e) => setEditingBonus({ ...editingBonus, description: e.target.value })}
-                        placeholder="Brief description"
-                      />
-                    </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-4">
                       <Button onClick={() => handleSaveBonus(editingBonus)}>
-                        <Save className="h-4 w-4 mr-1" /> Save
+                        <Save className="h-4 w-4 mr-2" /> Save
                       </Button>
                       <Button variant="outline" onClick={() => setEditingBonus(null)}>
-                        <X className="h-4 w-4 mr-1" /> Cancel
+                        Cancel
                       </Button>
                     </div>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="deductions">
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Deduction Presets</CardTitle>
+                    <CardDescription>Quick-add negative behaviors</CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setEditingDeduction({
+                      id: 0,
+                      label: '',
+                      points: -2,
+                      orderIndex: deductions.length,
+                      isActive: true,
+                    })}
+                  >
+                    <Plus className="h-4 w-4 mr-2" /> Add Deduction
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {deductions.map((deduction) => (
+                    <div key={deduction.id} className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-200">
+                      <div>
+                        <div className="font-medium text-slate-900">{deduction.label}</div>
+                        <div className="text-sm font-bold text-red-600">{deduction.points} points</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => setEditingDeduction(deduction)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteDeduction(deduction.id)}>
+                          <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-        <TabsContent value="deductions">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                Deduction Presets
-                <Button
-                  size="sm"
-                  onClick={() => setEditingDeduction({
-                    id: 0,
-                    label: '',
-                    points: -2,
-                    orderIndex: deductions.length,
-                    isActive: true,
-                  })}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Add Deduction
-                </Button>
-              </CardTitle>
-              <CardDescription>
-                Quick-add deduction buttons for negative behaviors
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {deductions.map((deduction) => (
-                  <div key={deduction.id} className="flex items-center justify-between p-4 border rounded-lg border-red-200 bg-red-50">
-                    <div>
-                      <div className="font-medium">{deduction.label}</div>
-                      <div className="text-sm text-red-700 font-semibold">{deduction.points} points</div>
+                {editingDeduction && (
+                  <div className="mt-6 p-6 border-2 border-red-200 rounded-xl bg-red-50">
+                    <h3 className="font-semibold text-lg mb-4">
+                      {editingDeduction.id ? 'Edit Deduction' : 'New Deduction'}
+                    </h3>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Label</Label>
+                        <Input
+                          value={editingDeduction.label}
+                          onChange={(e) => setEditingDeduction({ ...editingDeduction, label: e.target.value })}
+                          placeholder="e.g., Disrespectful behavior"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Points (negative)</Label>
+                        <Input
+                          type="number"
+                          max="-1"
+                          value={editingDeduction.points}
+                          onChange={(e) => setEditingDeduction({ ...editingDeduction, points: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <div className="sm:col-span-2 space-y-2">
+                        <Label>Description</Label>
+                        <Input
+                          value={editingDeduction.description || ''}
+                          onChange={(e) => setEditingDeduction({ ...editingDeduction, description: e.target.value })}
+                          placeholder="Brief description"
+                        />
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditingDeduction(deduction)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteDeduction(deduction.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {editingDeduction && (
-                <div className="mt-6 p-4 border-2 border-red-200 rounded-lg bg-red-50">
-                  <h3 className="font-semibold mb-4">
-                    {editingDeduction.id ? 'Edit Deduction' : 'New Deduction'}
-                  </h3>
-                  <div className="grid gap-4">
-                    <div>
-                      <Label>Label</Label>
-                      <Input
-                        value={editingDeduction.label}
-                        onChange={(e) => setEditingDeduction({ ...editingDeduction, label: e.target.value })}
-                        placeholder="e.g., Disrespectful behavior"
-                      />
-                    </div>
-                    <div>
-                      <Label>Points (negative)</Label>
-                      <Input
-                        type="number"
-                        max="-1"
-                        value={editingDeduction.points}
-                        onChange={(e) => setEditingDeduction({ ...editingDeduction, points: parseInt(e.target.value) })}
-                      />
-                    </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Input
-                        value={editingDeduction.description || ''}
-                        onChange={(e) => setEditingDeduction({ ...editingDeduction, description: e.target.value })}
-                        placeholder="Brief description"
-                      />
-                    </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-4">
                       <Button onClick={() => handleSaveDeduction(editingDeduction)}>
-                        <Save className="h-4 w-4 mr-1" /> Save
+                        <Save className="h-4 w-4 mr-2" /> Save
                       </Button>
                       <Button variant="outline" onClick={() => setEditingDeduction(null)}>
-                        <X className="h-4 w-4 mr-1" /> Cancel
+                        Cancel
                       </Button>
                     </div>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
