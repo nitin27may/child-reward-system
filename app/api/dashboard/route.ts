@@ -7,19 +7,7 @@ export async function GET() {
     const now = new Date()
     const { start: weekStart, end: weekEnd } = getWeekStartEnd(now)
 
-    // Debug: Log date ranges
-    console.log('Dashboard API - Date Debug:')
-    console.log('  Now:', now.toISOString())
-    console.log('  Week Start:', weekStart.toISOString())
-    console.log('  Week End:', weekEnd.toISOString())
-
     const config = await prisma.configuration.findFirst()
-
-    // Get all tracking to debug
-    const allTracking = await prisma.dailyTracking.findMany({
-      orderBy: { date: 'asc' },
-    })
-    console.log('  All tracking dates:', allTracking.map(t => t.date.toISOString()))
 
     const thisWeekTracking = await prisma.dailyTracking.findMany({
       where: {
@@ -31,7 +19,6 @@ export async function GET() {
       orderBy: { date: 'asc' },
       include: { bonusEvents: true },
     })
-    console.log('  This week tracking count:', thisWeekTracking.length)
 
     const weekScreenPoints = thisWeekTracking.reduce(
       (sum, day) => sum + day.screenTimeTotal,
