@@ -84,16 +84,16 @@ export default function TrackingPage() {
       const response = await fetch(`/api/tracking?date=${selectedDate}`)
       const tracking = await response.json()
 
-      if (tracking) {
+      if (tracking && tracking.date) {
         setData({
           date: new Date(tracking.date),
-          healthNutrition: tracking.healthNutrition,
-          screenDiscipline: tracking.screenDiscipline,
-          selfStudy: tracking.selfStudy,
-          household: tracking.household,
-          behaviorRespect: tracking.behaviorRespect,
-          dailyBonuses: tracking.dailyBonuses,
-          dailyDeductions: tracking.dailyDeductions,
+          healthNutrition: tracking.healthNutrition ?? 0,
+          screenDiscipline: tracking.screenDiscipline ?? 0,
+          selfStudy: tracking.selfStudy ?? 0,
+          household: tracking.household ?? 0,
+          behaviorRespect: tracking.behaviorRespect ?? 0,
+          dailyBonuses: tracking.dailyBonuses ?? 0,
+          dailyDeductions: tracking.dailyDeductions ?? 0,
           notes: tracking.notes || '',
           bonusEvents: tracking.bonusEvents || [],
         })
@@ -186,56 +186,56 @@ export default function TrackingPage() {
   }
 
   const basePoints =
-    data.healthNutrition +
-    data.screenDiscipline +
-    data.selfStudy +
-    data.household +
-    data.behaviorRespect
+    (data.healthNutrition || 0) +
+    (data.screenDiscipline || 0) +
+    (data.selfStudy || 0) +
+    (data.household || 0) +
+    (data.behaviorRespect || 0)
 
-  const totalPoints = basePoints + data.dailyBonuses + data.dailyDeductions
+  const totalPoints = basePoints + (data.dailyBonuses || 0) + (data.dailyDeductions || 0)
 
   const maxPossiblePoints = CATEGORIES.reduce((sum, cat) => sum + cat.max, 0)
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-16 lg:pt-0">
+    <div className="min-h-screen bg-slate-50 pt-14 lg:pt-0 pb-24 lg:pb-0">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-16 lg:top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Daily Tracking</h1>
-              <p className="text-slate-500 mt-1">Record points for both reward tracks</p>
+      <header className="bg-white border-b border-slate-200 sticky top-14 lg:top-0 z-40">
+        <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 truncate">Daily Tracking</h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5 truncate">Record points for both reward tracks</p>
             </div>
-            <Button onClick={handleSave} disabled={saving} size="lg" className="sm:w-auto">
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Progress'}
+            <Button onClick={handleSave} disabled={saving} size="sm" className="h-9 px-3 sm:h-10 sm:px-4 flex-shrink-0">
+              <Save className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Progress'}</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Date Selector */}
-        <Card className="border-0 shadow-sm mb-6">
-          <CardContent className="py-4">
-            <div className="flex items-center justify-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => changeDate(-1)}>
+        <Card className="border-0 shadow-sm mb-4 sm:mb-6">
+          <CardContent className="py-3 sm:py-4">
+            <div className="flex items-center justify-center gap-2 sm:gap-4">
+              <Button variant="ghost" size="icon" onClick={() => changeDate(-1)} className="h-10 w-10 touch-manipulation">
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-blue-600" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                 <Input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-auto font-medium text-center border-0 bg-slate-50 focus:bg-white"
+                  className="w-auto font-medium text-center border-0 bg-slate-50 focus:bg-white text-sm sm:text-base"
                 />
               </div>
-              <Button variant="ghost" size="icon" onClick={() => changeDate(1)}>
+              <Button variant="ghost" size="icon" onClick={() => changeDate(1)} className="h-10 w-10 touch-manipulation">
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
-            <p className="text-center text-sm text-slate-500 mt-2">
+            <p className="text-center text-xs sm:text-sm text-slate-500 mt-2">
               {formatDate(new Date(selectedDate))}
             </p>
           </CardContent>
@@ -243,40 +243,40 @@ export default function TrackingPage() {
 
         {/* Success/Error Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
             message.includes('success') 
               ? 'bg-green-50 border border-green-200 text-green-700' 
               : 'bg-red-50 border border-red-200 text-red-700'
           }`}>
-            {message.includes('success') ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+            {message.includes('success') ? <Check className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" /> : <X className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />}
             {message}
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Categories */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Card className="border-0 shadow-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Daily Categories</CardTitle>
-                <CardDescription>Rate performance in each category (tap or use buttons)</CardDescription>
+              <CardHeader className="p-3 sm:p-6 pb-2">
+                <CardTitle className="text-base sm:text-lg">Daily Categories</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Rate performance in each category (tap or use buttons)</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid sm:grid-cols-2 gap-4">
+              <CardContent className="p-3 sm:p-6 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {CATEGORIES.map((category) => {
                     const value = (data as any)[category.key]
                     const percentage = (value / category.max) * 100
                     return (
                       <div
                         key={category.key}
-                        className="p-4 bg-slate-50 rounded-xl space-y-3"
+                        className="p-3 sm:p-4 bg-slate-50 rounded-xl space-y-2 sm:space-y-3"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="text-2xl">{category.icon}</span>
-                            <span className="font-medium text-slate-700">{category.label}</span>
+                            <span className="text-xl sm:text-2xl">{category.icon}</span>
+                            <span className="font-medium text-slate-700 text-sm sm:text-base">{category.label}</span>
                           </div>
-                          <span className="text-xs text-slate-500 bg-white px-2 py-1 rounded-full">
+                          <span className="text-[10px] sm:text-xs text-slate-500 bg-white px-2 py-0.5 sm:py-1 rounded-full">
                             max {category.max}
                           </span>
                         </div>

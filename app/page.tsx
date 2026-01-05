@@ -124,26 +124,26 @@ export default function DashboardPage() {
   ].filter(item => item.value > 0)
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-16 lg:pt-0">
+    <div className="min-h-screen bg-slate-50 pt-14 lg:pt-0 pb-24 lg:pb-0">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-16 lg:top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
-              <p className="text-slate-500 mt-1">
+      <header className="bg-white border-b border-slate-200 sticky top-14 lg:top-0 z-40">
+        <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 truncate">Dashboard</h1>
+              <p className="text-slate-500 text-sm mt-0.5">
                 Week {data.currentWeek.weekNumber}, {data.currentWeek.year}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 flex-shrink-0">
               <Link href="/tracking">
-                <Button className="flex-1 sm:flex-none">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Track Today
+                <Button size="sm" className="h-9 px-3 sm:h-10 sm:px-4">
+                  <Calendar className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Track Today</span>
                 </Button>
               </Link>
-              <Link href="/weekly">
-                <Button variant="outline" className="flex-1 sm:flex-none">
+              <Link href="/weekly" className="hidden sm:block">
+                <Button variant="outline" size="sm" className="h-10 px-4">
                   Weekly Review
                 </Button>
               </Link>
@@ -152,20 +152,20 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {/* Screen Points */}
           <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6 sm:px-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">Screen Points</p>
-                  <p className="text-3xl font-bold mt-1 stat-number">{data.currentWeek.screenPoints}</p>
-                  <p className="text-blue-200 text-xs mt-1">This week</p>
+                <div className="min-w-0">
+                  <p className="text-blue-100 text-xs sm:text-sm font-medium">Screen Points</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-0.5 sm:mt-1 stat-number">{data.currentWeek.screenPoints}</p>
+                  <p className="text-blue-200 text-[10px] sm:text-xs mt-0.5 sm:mt-1">This week</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Zap className="h-5 w-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
             </CardContent>
@@ -173,15 +173,15 @@ export default function DashboardPage() {
 
           {/* Screen Time Earned */}
           <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6 sm:px-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium">Screen Time</p>
-                  <p className="text-3xl font-bold mt-1 stat-number">{data.currentWeek.screenTimeEarned}</p>
-                  <p className="text-purple-200 text-xs mt-1">minutes earned</p>
+                <div className="min-w-0">
+                  <p className="text-purple-100 text-xs sm:text-sm font-medium">Screen Time</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-0.5 sm:mt-1 stat-number">{data.currentWeek.screenTimeEarned}</p>
+                  <p className="text-purple-200 text-[10px] sm:text-xs mt-0.5 sm:mt-1">minutes earned</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Clock className="h-5 w-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
             </CardContent>
@@ -189,15 +189,15 @@ export default function DashboardPage() {
 
           {/* Christmas Fund */}
           <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6 sm:px-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-emerald-100 text-sm font-medium">Christmas Fund</p>
-                  <p className="text-3xl font-bold mt-1 stat-number">${data.christmasFund.current.toFixed(0)}</p>
-                  <p className="text-emerald-200 text-xs mt-1">of ${data.christmasFund.goal} goal</p>
+                <div className="min-w-0">
+                  <p className="text-emerald-100 text-xs sm:text-sm font-medium">Christmas Fund</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-0.5 sm:mt-1 stat-number">${data.christmasFund.current.toFixed(0)}</p>
+                  <p className="text-emerald-200 text-[10px] sm:text-xs mt-0.5 sm:mt-1">of ${data.christmasFund.goal} goal</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Gift className="h-5 w-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Gift className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
             </CardContent>
@@ -205,15 +205,15 @@ export default function DashboardPage() {
 
           {/* Days Until Christmas */}
           <Card className="card-hover border-0 shadow-sm bg-gradient-to-br from-amber-500 to-orange-500 text-white">
-            <CardContent className="pt-6">
+            <CardContent className="p-3 sm:pt-6 sm:px-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-amber-100 text-sm font-medium">Christmas</p>
-                  <p className="text-3xl font-bold mt-1 stat-number">{daysUntilChristmas}</p>
-                  <p className="text-amber-200 text-xs mt-1">days to go</p>
+                <div className="min-w-0">
+                  <p className="text-amber-100 text-xs sm:text-sm font-medium">Christmas</p>
+                  <p className="text-2xl sm:text-3xl font-bold mt-0.5 sm:mt-1 stat-number">{daysUntilChristmas}</p>
+                  <p className="text-amber-200 text-[10px] sm:text-xs mt-0.5 sm:mt-1">days to go</p>
                 </div>
-                <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                  <Star className="h-5 w-5" />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                  <Star className="h-4 w-4 sm:h-5 sm:w-5" />
                 </div>
               </div>
             </CardContent>
@@ -221,26 +221,26 @@ export default function DashboardPage() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Weekly Progress Chart */}
           <Card className="lg:col-span-2 border-0 shadow-sm">
-            <CardHeader className="pb-2">
+            <CardHeader className="p-3 sm:p-6 pb-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-lg">Weekly Progress</CardTitle>
-                  <CardDescription>Daily points breakdown</CardDescription>
+                  <CardTitle className="text-base sm:text-lg">Weekly Progress</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">Daily points breakdown</CardDescription>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
                   <span className="flex items-center gap-1">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-500"></div>
                     Points
                   </span>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 sm:p-6 pt-0">
               {weeklyChartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={200} className="sm:!h-[280px]">
                   <AreaChart data={weeklyChartData}>
                     <defs>
                       <linearGradient id="colorPoints" x1="0" y1="0" x2="0" y2="1">

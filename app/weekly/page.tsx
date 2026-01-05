@@ -162,18 +162,18 @@ export default function WeeklyReviewPage() {
   ] : []
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-16 lg:pt-0">
+    <div className="min-h-screen bg-slate-50 pt-14 lg:pt-0 pb-24 lg:pb-0">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-16 lg:top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Weekly Review</h1>
-              <p className="text-slate-500 mt-1">Complete your weekly review and set goals</p>
+      <header className="bg-white border-b border-slate-200 sticky top-14 lg:top-0 z-40">
+        <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 truncate">Weekly Review</h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5 truncate">Complete your weekly review and set goals</p>
             </div>
-            <Button onClick={handleSave} disabled={saving || !weekSummary} size="lg" className="sm:w-auto">
-              <Save className="mr-2 h-4 w-4" />
-              {saving ? 'Saving...' : 'Save Review'}
+            <Button onClick={handleSave} disabled={saving || !weekSummary} size="sm" className="h-9 px-3 sm:h-10 sm:px-4 flex-shrink-0">
+              <Save className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Review'}</span>
             </Button>
           </div>
         </div>

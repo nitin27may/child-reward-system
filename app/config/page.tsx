@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { EmojiPickerTrigger } from '@/components/emoji-picker'
 import { 
   Settings, Plus, Trash2, Edit2, Save, X, Zap, Gift, 
   Clock, DollarSign, Target, CheckCircle, Sparkles
@@ -252,10 +253,10 @@ export default function ConfigPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-16 lg:pt-0">
+      <div className="min-h-screen flex items-center justify-center pt-14 lg:pt-0">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-lg text-slate-600">Loading configuration...</p>
+          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-base sm:text-lg text-slate-600">Loading configuration...</p>
         </div>
       </div>
     )
@@ -263,19 +264,19 @@ export default function ConfigPage() {
 
   if (!initialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-16 lg:pt-0 px-4">
+      <div className="min-h-screen flex items-center justify-center pt-14 lg:pt-0 px-3 sm:px-4">
         <Card className="max-w-lg w-full border-0 shadow-lg">
-          <CardHeader className="text-center pb-2">
-            <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="h-8 w-8 text-blue-600" />
+          <CardHeader className="text-center pb-2 p-4 sm:p-6">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl">Initialize Reward System</CardTitle>
-            <CardDescription className="text-base">
+            <CardTitle className="text-xl sm:text-2xl">Initialize Reward System</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               Set up your reward system with default categories and settings
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
+          <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6 pt-0">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
                   <Target className="h-4 w-4 text-blue-600" />
@@ -318,55 +319,53 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-16 lg:pt-0">
+    <div className="min-h-screen bg-slate-50 pt-14 lg:pt-0 pb-24 lg:pb-0">
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-16 lg:top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Settings</h1>
-              <p className="text-slate-500 mt-1">Configure your reward system</p>
-            </div>
+      <header className="bg-white border-b border-slate-200 sticky top-14 lg:top-0 z-40">
+        <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Settings</h1>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Configure your reward system</p>
           </div>
         </div>
       </header>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
         {/* Success/Error Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
+          <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
             message.includes('success') 
               ? 'bg-green-50 border border-green-200 text-green-700' 
               : 'bg-red-50 border border-red-200 text-red-700'
           }`}>
-            {message.includes('success') ? <CheckCircle className="h-5 w-5" /> : <X className="h-5 w-5" />}
+            {message.includes('success') ? <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" /> : <X className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />}
             {message}
           </div>
         )}
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="w-full sm:w-auto bg-white border border-slate-200 p-1 rounded-lg mb-6">
-            <TabsTrigger value="general" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+          <TabsList className="w-full sm:w-auto bg-white border border-slate-200 p-1 rounded-lg mb-4 sm:mb-6 grid grid-cols-4 sm:flex gap-1">
+            <TabsTrigger value="general" className="rounded-md text-xs sm:text-sm px-2 sm:px-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
               General
             </TabsTrigger>
-            <TabsTrigger value="categories" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+            <TabsTrigger value="categories" className="rounded-md text-xs sm:text-sm px-2 sm:px-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
               Categories
             </TabsTrigger>
-            <TabsTrigger value="bonuses" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+            <TabsTrigger value="bonuses" className="rounded-md text-xs sm:text-sm px-2 sm:px-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
               Bonuses
             </TabsTrigger>
-            <TabsTrigger value="deductions" className="rounded-md data-[state=active]:bg-slate-900 data-[state=active]:text-white">
+            <TabsTrigger value="deductions" className="rounded-md text-xs sm:text-sm px-2 sm:px-3 data-[state=active]:bg-slate-900 data-[state=active]:text-white">
               Deductions
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="general">
-            <div className="grid lg:grid-cols-2 gap-6">
+            <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Screen Time Settings */}
               <Card className="border-0 shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-blue-600" />
+                <CardHeader className="p-3 sm:p-6 pb-2">
+                  <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                     Screen Time Settings
                   </CardTitle>
                   <CardDescription>Configure screen time rewards</CardDescription>
@@ -523,10 +522,9 @@ export default function ConfigPage() {
                       </div>
                       <div className="space-y-2">
                         <Label>Icon (emoji)</Label>
-                        <Input
+                        <EmojiPickerTrigger
                           value={editingCategory.icon}
-                          onChange={(e) => setEditingCategory({ ...editingCategory, icon: e.target.value })}
-                          placeholder="🥗"
+                          onChange={(emoji) => setEditingCategory({ ...editingCategory, icon: emoji })}
                         />
                       </div>
                       <div className="space-y-2">

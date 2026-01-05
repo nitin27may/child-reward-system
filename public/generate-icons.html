@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate PWA Icons</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; background: #f5f5f5; }
+    h1 { color: #1e293b; }
+    .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+    .icon-item { background: white; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    canvas { display: block; margin: 0 auto 10px; }
+    button { background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+    button:hover { background: #2563eb; }
+    .instructions { background: #dbeafe; padding: 16px; border-radius: 8px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>🎨 PWA Icon Generator</h1>
+  <div class="instructions">
+    <strong>Instructions:</strong> Click "Download" on each icon to save it, or click "Download All" to get all icons at once.
+  </div>
+  <button onclick="downloadAll()" style="margin-bottom: 20px; font-size: 16px; padding: 12px 24px;">📥 Download All Icons</button>
+  <div class="icon-grid" id="icons"></div>
+  
+  <script>
+    const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+    const container = document.getElementById('icons');
+    const canvases = {};
+    
+    function createIcon(size) {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#3b82f6');
+      gradient.addColorStop(1, '#8b5cf6');
+      
+      // Rounded rectangle
+      const radius = size * 0.21;
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.fillStyle = gradient;
+      ctx.fill();
+      
+      // Star icon
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const outerRadius = size * 0.28;
+      const innerRadius = size * 0.11;
+      const spikes = 5;
+      
+      ctx.beginPath();
+      for (let i = 0; i < spikes * 2; i++) {
+        const r = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (i * Math.PI) / spikes - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * r;
+        const y = centerY + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+      
+      return canvas;
+    }
+    
+    function downloadCanvas(canvas, filename) {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    
+    function downloadAll() {
+      sizes.forEach(size => {
+        const filename = `icon-${size}x${size}.png`;
+        downloadCanvas(canvases[size], filename);
+      });
+    }
+    
+    sizes.forEach(size => {
+      const canvas = createIcon(size);
+      canvases[size] = canvas;
+      
+      const item = document.createElement('div');
+      item.className = 'icon-item';
+      item.innerHTML = `<strong>icon-${size}x${size}.png</strong>`;
+      item.appendChild(canvas);
+      
+      const btn = document.createElement('button');
+      btn.textContent = '📥 Download';
+      btn.onclick = () => downloadCanvas(canvas, `icon-${size}x${size}.png`);
+      item.appendChild(btn);
+      
+      container.appendChild(item);
+    });
+  </script>
+</body>
+</html>
