@@ -1,0 +1,142 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Configuration for conversion rates and system settings
+model Configuration {
+  id                    Int      @id @default(autoincrement())
+  pointsToMinutes       Float    @default(0.5) // Default: 2 points = 1 minute
+  pointsToDollars       Float    @default(1.0) // Default: 1 point = $1
+  christmasGoal         Float    @default(500.0)
+  maxWeeklyScreenTime   Int      @default(60) // minutes
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+// Daily tracking for all categories
+model DailyTracking {
+  id                    Int      @id @default(autoincrement())
+  date                  DateTime @unique
+  dayOfWeek             String
+
+  // Category points (can be negative)
+  healthNutrition       Int      @default(0)
+  screenDiscipline      Int      @default(0)
+  selfStudy             Int      @default(0)
+  household             Int      @default(0)
+  behaviorRespect       Int      @default(0)
+
+  // Bonuses and deductions
+  dailyBonuses          Int      @default(0)
+  dailyDeductions       Int      @default(0)
+
+  // Calculated totals
+  screenTimeTotal       Int      @default(0)
+  christmasFundTotal    Int      @default(0)
+
+  // Notes
+  notes                 String?
+
+  // Related records
+  bonusEvents           BonusDeduction[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([date])
+}
+
+// Track individual bonus and deduction events
+model BonusDeduction {
+  id              Int           @id @default(autoincrement())
+  date            DateTime
+  type            String        // "bonus" or "deduction"
+  category        String        // e.g., "Perfect sugar-free day", "Disrespectful behavior"
+  points          Int
+  description     String?
+
+  dailyTracking   DailyTracking @relation(fields: [trackingId], references: [id], onDelete: Cascade)
+  trackingId      Int
+
+  createdAt       DateTime      @default(now())
+
+  @@index([date])
+  @@index([type])
+}
+
+// Weekly review summaries
+model WeeklyReview {
+  id                      Int      @id @default(autoincrement())
+  weekNumber              Int
+  year                    Int
+  weekStartDate           DateTime
+  weekEndDate             DateTime
+
+  // Screen time track
+  totalScreenPoints       Int
+  screenTimeEarned        Int      // in minutes
+  screenTimeUsed          Int      // in minutes
+
+  // Christmas fund track
+  christmasFundPoints     Int
+  christmasFundCumulative Float
+
+  // Behavior analysis
+  totalBonuses            Int
+  totalDeductions         Int
+  commonDeductions        String?  // JSON array of common issues
+  commonBonuses           String?  // JSON array of strengths
+
+  // Notes from weekly review
+  notes                   String?
+  behaviorGoalNextWeek    String?
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([weekNumber, year])
+  @@index([weekStartDate])
+}
+
+// Track monthly summaries for dashboard
+model MonthlySummary {
+  id                      Int      @id @default(autoincrement())
+  month                   Int
+  year                    Int
+
+  totalScreenPoints       Int
+  totalScreenTimeEarned   Int
+  totalChristmasFundPoints Int
+  christmasFundCumulative Float
+
+  totalBonuses            Int
+  totalDeductions         Int
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([month, year])
+}
+
+// Special events and milestones
+model SpecialEvent {
+  id              Int      @id @default(autoincrement())
+  date            DateTime
+  type            String   // "milestone", "perfect_week", "monthly_bonus", etc.
+  title           String
+  description     String?
+  pointsAwarded   Int      @default(0)
+
+  createdAt       DateTime @default(now())
+
+  @@index([date])
+  @@index([type])
+}
