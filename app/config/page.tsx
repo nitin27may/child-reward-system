@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { PageHeader } from '@/components/page-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EmojiPickerTrigger } from '@/components/emoji-picker'
 import { 
   Settings, Plus, Trash2, Edit2, Save, X, Zap, Gift, 
-  Clock, DollarSign, Target, CheckCircle, Sparkles
+  Clock, DollarSign, Target, CheckCircle, Sparkles, Loader2
 } from 'lucide-react'
 
 interface Config {
@@ -50,6 +52,7 @@ interface DeductionPreset {
 }
 
 export default function ConfigPage() {
+  const { loading: authLoading } = useAuth()
   const [config, setConfig] = useState<Config | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [bonuses, setBonuses] = useState<BonusPreset[]>([])
@@ -68,7 +71,7 @@ export default function ConfigPage() {
 
   const fetchAll = async () => {
     try {
-      const initResponse = await fetch('/api/initialize')
+      const initResponse = await fetch('/api/v2/initialize')
       const initData = await initResponse.json()
       setInitialized(initData.initialized)
 
@@ -78,10 +81,10 @@ export default function ConfigPage() {
       }
 
       const [configRes, categoriesRes, bonusesRes, deductionsRes] = await Promise.all([
-        fetch('/api/config'),
-        fetch('/api/categories'),
-        fetch('/api/bonuses'),
-        fetch('/api/deductions'),
+        fetch('/api/v2/config'),
+        fetch('/api/v2/categories'),
+        fetch('/api/v2/bonuses'),
+        fetch('/api/v2/deductions'),
       ])
 
       const [configData, categoriesData, bonusesData, deductionsData] = await Promise.all([
@@ -92,9 +95,29 @@ export default function ConfigPage() {
       ])
 
       setConfig(configData)
-      setCategories(categoriesData)
-      setBonuses(bonusesData)
-      setDeductions(deductionsData)
+      setCategories(categoriesData.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        key: c.key,
+        icon: c.icon,
+        maxPoints: c.max_points,
+        orderIndex: c.order_index,
+        isActive: c.is_active,
+      })))
+      setBonuses(bonusesData.map((b: any) => ({
+        id: b.id,
+        label: b.label,
+        points: b.points,
+        orderIndex: b.order_index,
+        isActive: b.is_active,
+      })))
+      setDeductions(deductionsData.map((d: any) => ({
+        id: d.id,
+        label: d.label,
+        points: d.points,
+        orderIndex: d.order_index,
+        isActive: d.is_active,
+      })))
     } catch (error) {
       console.error('Error fetching data:', error)
       setMessage('Failed to load configuration')
@@ -106,7 +129,7 @@ export default function ConfigPage() {
   const handleInitialize = async () => {
     setSaving(true)
     try {
-      const response = await fetch('/api/initialize', { method: 'POST' })
+      const response = await fetch('/api/v2/initialize', { method: 'POST' })
       const data = await response.json()
       if (response.ok) {
         setMessage('System initialized successfully!')
@@ -127,7 +150,7 @@ export default function ConfigPage() {
     setMessage('')
 
     try {
-      const response = await fetch('/api/config', {
+      const response = await fetch('/api/v2/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config),
@@ -149,10 +172,18 @@ export default function ConfigPage() {
   const handleSaveCategory = async (category: Category) => {
     try {
       const method = category.id ? 'PUT' : 'POST'
-      const response = await fetch('/api/categories', {
+      const response = await fetch('/api/v2/categories', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(category),
+        body: JSON.stringify({
+          id: category.id,
+          name: category.name,
+          key: category.key,
+          icon: category.icon,
+          max_points: category.maxPoints,
+          order_index: category.orderIndex,
+          is_active: category.isActive,
+        }),
       })
 
       if (response.ok) {
@@ -170,7 +201,7 @@ export default function ConfigPage() {
     if (!confirm('Are you sure you want to delete this category?')) return
 
     try {
-      const response = await fetch(`/api/categories?id=${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/v2/categories?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
         await fetchAll()
         setMessage('Category deleted successfully!')
@@ -184,10 +215,16 @@ export default function ConfigPage() {
   const handleSaveBonus = async (bonus: BonusPreset) => {
     try {
       const method = bonus.id ? 'PUT' : 'POST'
-      const response = await fetch('/api/bonuses', {
+      const response = await fetch('/api/v2/bonuses', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bonus),
+        body: JSON.stringify({
+          id: bonus.id,
+          label: bonus.label,
+          points: bonus.points,
+          order_index: bonus.orderIndex,
+          is_active: bonus.isActive,
+        }),
       })
 
       if (response.ok) {
@@ -205,7 +242,7 @@ export default function ConfigPage() {
     if (!confirm('Are you sure you want to delete this bonus?')) return
 
     try {
-      const response = await fetch(`/api/bonuses?id=${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/v2/bonuses?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
         await fetchAll()
         setMessage('Bonus deleted successfully!')
@@ -219,10 +256,16 @@ export default function ConfigPage() {
   const handleSaveDeduction = async (deduction: DeductionPreset) => {
     try {
       const method = deduction.id ? 'PUT' : 'POST'
-      const response = await fetch('/api/deductions', {
+      const response = await fetch('/api/v2/deductions', {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(deduction),
+        body: JSON.stringify({
+          id: deduction.id,
+          label: deduction.label,
+          points: deduction.points,
+          order_index: deduction.orderIndex,
+          is_active: deduction.isActive,
+        }),
       })
 
       if (response.ok) {
@@ -240,7 +283,7 @@ export default function ConfigPage() {
     if (!confirm('Are you sure you want to delete this deduction?')) return
 
     try {
-      const response = await fetch(`/api/deductions?id=${id}`, { method: 'DELETE' })
+      const response = await fetch(`/api/v2/deductions?id=${id}`, { method: 'DELETE' })
       if (response.ok) {
         await fetchAll()
         setMessage('Deduction deleted successfully!')
@@ -255,7 +298,7 @@ export default function ConfigPage() {
     return (
       <div className="min-h-screen flex items-center justify-center pt-14 lg:pt-0">
         <div className="text-center">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <Loader2 className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-base sm:text-lg text-slate-600">Loading configuration...</p>
         </div>
       </div>
@@ -319,18 +362,13 @@ export default function ConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-14 lg:pt-0 pb-24 lg:pb-0">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-14 lg:top-0 z-40">
-        <div className="px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Settings</h1>
-            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Configure your reward system</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <>
+      <PageHeader 
+        title="Settings"
+        description="Configure your reward system"
+      />
+      <div className="min-h-screen bg-slate-50 pb-24 lg:pb-0">
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
         {/* Success/Error Message */}
         {message && (
           <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${
@@ -732,7 +770,8 @@ export default function ConfigPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

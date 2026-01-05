@@ -1,20 +1,34 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Home, Calendar, Settings, BookOpen, Trophy, Menu, X, ChevronRight } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Home, Calendar, Settings, BookOpen, Trophy, Menu, X, ChevronRight, Users, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { ChildSelector } from '@/components/child-selector'
 
-const navItems = [
+interface NavItem {
+  href: string
+  label: string
+  shortLabel: string
+  icon: React.ComponentType<{ className?: string }>
+  description: string
+  parentOnly?: boolean
+}
+
+const navItems: NavItem[] = [
   { href: '/', label: 'Dashboard', shortLabel: 'Home', icon: Home, description: 'Overview & stats' },
   { href: '/tracking', label: 'Daily Tracking', shortLabel: 'Track', icon: Calendar, description: 'Record daily points' },
   { href: '/weekly', label: 'Weekly Review', shortLabel: 'Weekly', icon: BookOpen, description: 'Weekly summaries' },
-  { href: '/config', label: 'Settings', shortLabel: 'Settings', icon: Settings, description: 'System configuration' },
+  { href: '/config', label: 'Settings', shortLabel: 'Settings', icon: Settings, description: 'System configuration', parentOnly: true },
+  { href: '/children', label: 'Manage Children', shortLabel: 'Kids', icon: Users, description: 'Add or edit kids', parentOnly: true },
 ]
 
 export function Navigation() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { user, profile, signOut, loading } = useAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
 
@@ -30,24 +44,51 @@ export function Navigation() {
     setMobileMenuOpen(false)
   }, [pathname])
 
+  // Don't render navigation on auth pages
+  if (pathname?.startsWith('/auth')) {
+    return null
+  }
+
+  // Show loading or nothing while auth is loading
+  if (loading) {
+    return null
+  }
+
+  // Filter nav items based on role
+  const filteredNavItems = navItems.filter(item => {
+    if (item.parentOnly && profile?.role !== 'parent') {
+      return false
+    }
+    return true
+  })
+
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/auth/login')
+  }
+
   return (
     <>
-      {/* Mobile Header - Hidden when bottom nav is visible */}
+      {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div className="flex items-center justify-between px-4 h-14">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 flex-1">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
               <Trophy className="h-4 w-4 text-white" />
             </div>
             <span className="text-base font-bold text-slate-900">Reward Tracker</span>
           </Link>
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 -mr-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors touch-manipulation"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Child Selector in Header */}
+            <ChildSelector compact className="w-auto" />
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 -mr-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors touch-manipulation"
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
         
         {/* Mobile Menu Dropdown */}
@@ -59,8 +100,31 @@ export function Navigation() {
               onClick={() => setMobileMenuOpen(false)}
             />
             <div className="absolute top-14 left-0 right-0 bg-white border-b border-slate-200 shadow-xl z-50 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
+              {/* User Info */}
+              {user && (
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                      {profile?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-800 truncate">
+                        {profile?.full_name || 'User'}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    </div>
+                    <span className={cn(
+                      "text-xs px-2 py-1 rounded-full font-medium",
+                      profile?.role === 'parent' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                    )}>
+                      {profile?.role || 'user'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <nav className="p-3 space-y-1">
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href
                   return (
@@ -88,6 +152,20 @@ export function Navigation() {
                     </Link>
                   )
                 })}
+
+                {/* Sign Out */}
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all active:scale-[0.98] touch-manipulation text-red-600 hover:bg-red-50 active:bg-red-100"
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-100">
+                    <LogOut className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="font-medium truncate">Sign Out</div>
+                    <div className="text-xs text-red-400 truncate">Log out of account</div>
+                  </div>
+                </button>
               </nav>
             </div>
           </>
@@ -100,7 +178,7 @@ export function Navigation() {
         isStandalone && "pb-safe"
       )}>
         <div className="flex items-stretch justify-around h-16 px-1 max-w-md mx-auto">
-          {navItems.map((item) => {
+          {filteredNavItems.slice(0, 4).map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
@@ -145,7 +223,7 @@ export function Navigation() {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
@@ -175,12 +253,28 @@ export function Navigation() {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-700">
-          <div className="text-xs text-slate-500">
-            <p>© 2025 Reward System</p>
-            <p className="mt-1">Version 1.0</p>
-          </div>
+        {/* User & Sign Out */}
+        <div className="px-4 py-4 border-t border-slate-700 space-y-3">
+          {user && (
+            <div className="flex items-center gap-3 px-2">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                {profile?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-slate-200 truncate">
+                  {profile?.full_name || 'User'}
+                </p>
+                <p className="text-xs text-slate-500 truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm font-medium">Sign Out</span>
+          </button>
         </div>
       </aside>
     </>
