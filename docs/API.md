@@ -38,6 +38,32 @@ All API endpoints require authentication using Supabase Auth. Authentication is 
 
 ### Authentication Flow
 
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Middleware
+    participant SupabaseAuth
+    participant API
+    participant Database
+    
+    Client->>Middleware: HTTP Request with cookie
+    Middleware->>SupabaseAuth: getUser() from cookie
+    
+    alt Valid session
+        SupabaseAuth-->>Middleware: User object
+        Middleware->>Client: Continue to route
+        Client->>API: API Request
+        API->>Database: Query with RLS
+        Database-->>API: Filtered results
+        API-->>Client: Response
+    else Invalid/expired session
+        SupabaseAuth-->>Middleware: null user
+        Middleware->>Client: Redirect to /auth/login
+    end
+```
+
+### Client-Side Auth Check
+
 ```typescript
 // Client-side authentication check
 const { data: { user }, error } = await supabase.auth.getUser()
@@ -48,11 +74,43 @@ if (!user) {
 }
 ```
 
+### API Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant Supabase
+    participant RLS
+    participant DB
+    
+    Client->>API: POST /api/v2/tracking<br/>{childId, date, data}
+    API->>Supabase: getUser() from cookie
+    Supabase-->>API: User session
+    
+    API->>DB: Query profiles for family_id
+    DB-->>API: family_id
+    
+    API->>DB: Query children<br/>WHERE id=childId
+    RLS->>DB: Apply RLS policy:<br/>family_id matches
+    
+    alt Child belongs to family
+        DB-->>API: Child data
+        API->>DB: INSERT/UPDATE daily_tracking
+        DB-->>API: Success
+        API-->>Client: 200 OK
+    else Child not in family
+        DB-->>API: Empty result
+        API-->>Client: 404 Not Found
+    end
+```
+
 ### Authorization
 
 - All endpoints verify the authenticated user's `family_id` from the `profiles` table
 - Resources (children, categories, tracking data) are scoped to the user's family
 - Attempting to access another family's resources returns `404 Not Found`
+- Row Level Security (RLS) enforces data isolation at database level
 
 ### HTTP Headers
 

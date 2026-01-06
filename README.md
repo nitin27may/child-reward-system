@@ -154,6 +154,35 @@ npm run dev
 
 Check browser console for errors. Verify `prisma/dev.db` exists.
 
+## Documentation
+
+Comprehensive documentation for developers and AI agents:
+
+- **[Architecture](docs/ARCHITECTURE.md)** - System architecture, component diagrams, data flow, authentication flow, deployment architecture with Mermaid diagrams
+- **[Features](docs/FEATURES.md)** - Complete feature inventory with all 8 major features, dual-track system, business logic, and UI/UX details
+- **[Database](docs/DATABASE.md)** - Database schema with ER diagrams, all 10 tables, RLS policies, functions, triggers, and migrations
+- **[API](docs/API.md)** - Complete API reference for all V2 endpoints with request/response examples, TypeScript types, and cURL commands
+- **[Deployment](docs/DEPLOYMENT.md)** - Production deployment guide for Supabase and Vercel, including setup, configuration, monitoring, and troubleshooting
+- **[Future Roadmap](docs/FUTURE_ROADMAP.md)** - Planned features Q1-Q4 2026, including short-term goals, mobile app, adult tracking, and more
+
+## Future Features
+
+### Coming Soon (Q1 2026)
+- 🎯 **Short-term goals** - Set multiple goals with custom deadlines
+- ✅ **Weekly finalization** - Mark weeks as complete and track allowance payout
+- 📄 **Data export** - Export tracking data to CSV/PDF/Excel
+- 📧 **Email notifications** - Automated weekly summaries and goal completion alerts
+
+### On the Roadmap (Q2-Q4 2026)
+- 👨‍💼 **Adult habit tracking** - Generalize system for adult habit tracking with custom reward types
+- 🏆 **Achievement system** - Gamification with badges, streaks, and milestones
+- 📱 **Mobile app** - React Native apps for iOS and Android
+- 🤖 **AI insights** - Machine learning powered behavior predictions and recommendations
+- 👨‍👩‍👧‍👦 **Family collaboration** - Multi-parent access and real-time sync
+- 🌐 **Multi-language** - Support for Spanish, French, German, and Mandarin
+
+See [FUTURE_ROADMAP.md](docs/FUTURE_ROADMAP.md) for complete details.
+
 ---
 
 **Built for effective, transparent behavior management with real-world consequences.**
