@@ -15,8 +15,8 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
   const { selectedChild } = useAuth()
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 lg:ml-64">
-      <div className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-200">
+      <div className="px-4 sm:px-6 lg:pl-6 lg:pr-8 py-3 sm:py-4 flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
           {title && <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">{title}</h1>}
           {description && <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{description}</p>}

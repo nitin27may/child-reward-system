@@ -147,7 +147,7 @@ export function ChildSelector({ compact = false, className, variant = 'light' }:
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           
           {/* Dropdown */}
-          <div className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
+          <div className="absolute top-full right-0 mt-1 w-56 bg-white rounded-xl border border-slate-200 shadow-xl z-50 overflow-hidden">
             <div className="p-2">
               <p className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Select Child

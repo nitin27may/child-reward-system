@@ -46,6 +46,7 @@ interface TrackingData {
   category_points: Record<string, number>
   daily_bonuses: number
   daily_deductions: number
+  screen_time_used: number
   notes: string
   bonus_events: BonusEvent[]
 }
@@ -67,6 +68,7 @@ export default function TrackingPage() {
     category_points: {},
     daily_bonuses: 0,
     daily_deductions: 0,
+    screen_time_used: 0,
     notes: '',
     bonus_events: [],
   })
@@ -125,6 +127,7 @@ export default function TrackingPage() {
           category_points: tracking.category_points || {},
           daily_bonuses: tracking.daily_bonuses ?? 0,
           daily_deductions: tracking.daily_deductions ?? 0,
+          screen_time_used: tracking.screen_time_used ?? 0,
           notes: tracking.notes || '',
           bonus_events: tracking.bonus_events || [],
         })
@@ -134,6 +137,7 @@ export default function TrackingPage() {
           category_points: {},
           daily_bonuses: 0,
           daily_deductions: 0,
+          screen_time_used: 0,
           notes: '',
           bonus_events: [],
         })
@@ -159,6 +163,7 @@ export default function TrackingPage() {
           category_points: data.category_points,
           daily_bonuses: data.daily_bonuses,
           daily_deductions: data.daily_deductions,
+          screen_time_used: data.screen_time_used,
           notes: data.notes,
           bonus_events: data.bonus_events,
         }),
@@ -262,14 +267,14 @@ export default function TrackingPage() {
         title="Daily Tracking"
         description="Record daily performance in each category"
         actions={
-          <Button onClick={handleSave} disabled={saving} size="sm" className="hidden sm:flex">
-            <Save className="h-4 w-4 sm:mr-2" />
-            <span>{saving ? 'Saving...' : 'Save Progress'}</span>
+          <Button onClick={handleSave} disabled={saving} size="sm" className="flex items-center gap-2">
+            <Save className="h-4 w-4" />
+            <span className="hidden sm:inline">{saving ? 'Saving...' : 'Save Progress'}</span>
           </Button>
         }
       />
       <div className="min-h-screen bg-slate-50 pb-24 lg:pb-0">
-        <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="px-3 sm:px-6 lg:pl-6 lg:pr-8 py-4 sm:py-6">
         {/* Date Selector */}
         <Card className="border-0 shadow-sm mb-4 sm:mb-6">
           <CardContent className="py-3 sm:py-4">
@@ -474,6 +479,27 @@ export default function TrackingPage() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Screen Time & Notes */}
+            <Card className="border-0 shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Screen Time Used</CardTitle>
+                <CardDescription>Track actual screen time used today (minutes)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="number"
+                    min="0"
+                    value={data.screen_time_used || ''}
+                    onChange={(e) => setData({ ...data, screen_time_used: parseInt(e.target.value) || 0 })}
+                    placeholder="0"
+                    className="w-32 text-center text-lg font-semibold"
+                  />
+                  <span className="text-slate-600">minutes</span>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Notes */}
             <Card className="border-0 shadow-sm">

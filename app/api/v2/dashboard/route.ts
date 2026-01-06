@@ -85,8 +85,11 @@ export async function GET(request: NextRequest) {
       .gte('date', weekStart)
       .lte('date', weekEnd)
 
-    // Calculate current week stats
-    const currentWeekPoints = currentWeekData?.reduce((sum, d) => sum + (d.total_points || 0), 0) || 0
+    // Calculate current week stats - sum category_points objects
+    const currentWeekPoints = currentWeekData?.reduce((sum, d) => {
+      const categorySum = Object.values(d.category_points || {}).reduce((s: number, v) => s + (Number(v) || 0), 0)
+      return sum + categorySum + (d.daily_bonuses || 0) + (d.daily_deductions || 0)
+    }, 0) || 0
     const currentWeekScreenTime = currentWeekPoints * pointsToMinutes
     const currentWeekAllowance = currentWeekPoints * pointsToDollars
     const daysTracked = currentWeekData?.length || 0
@@ -96,11 +99,14 @@ export async function GET(request: NextRequest) {
     const yearStart = `${new Date().getFullYear()}-01-01`
     const { data: yearData } = await supabase
       .from('daily_tracking')
-      .select('total_points')
+      .select('*')
       .eq('child_id', childId)
       .gte('date', yearStart)
 
-    const yearTotalPoints = yearData?.reduce((sum, d) => sum + (d.total_points || 0), 0) || 0
+    const yearTotalPoints = yearData?.reduce((sum, d) => {
+      const categorySum = Object.values(d.category_points || {}).reduce((s: number, v) => s + (Number(v) || 0), 0)
+      return sum + categorySum + (d.daily_bonuses || 0) + (d.daily_deductions || 0)
+    }, 0) || 0
     // 10% goes to Christmas fund
     const christmasSavings = yearTotalPoints * pointsToDollars * 0.1
     const christmasProgress = Math.min((christmasSavings / christmasGoal) * 100, 100)
@@ -110,11 +116,14 @@ export async function GET(request: NextRequest) {
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
     const { data: monthData } = await supabase
       .from('daily_tracking')
-      .select('total_points')
+      .select('*')
       .eq('child_id', childId)
       .gte('date', monthStart)
 
-    const monthPoints = monthData?.reduce((sum, d) => sum + (d.total_points || 0), 0) || 0
+    const monthPoints = monthData?.reduce((sum, d) => {
+      const categorySum = Object.values(d.category_points || {}).reduce((s: number, v) => s + (Number(v) || 0), 0)
+      return sum + categorySum + (d.daily_bonuses || 0) + (d.daily_deductions || 0)
+    }, 0) || 0
     const monthScreenTime = monthPoints * pointsToMinutes
     const monthAllowance = monthPoints * pointsToDollars
 
@@ -125,16 +134,19 @@ export async function GET(request: NextRequest) {
     
     const { data: trendsData } = await supabase
       .from('daily_tracking')
-      .select('date, total_points, categories')
+      .select('date, category_points, daily_bonuses, daily_deductions')
       .eq('child_id', childId)
       .gte('date', thirtyDaysAgoStr)
       .order('date', { ascending: true })
 
-    const behaviorTrends = (trendsData || []).map(d => ({
-      date: d.date,
-      points: d.total_points || 0,
-      categories: d.categories || {},
-    }))
+    const behaviorTrends = (trendsData || []).map(d => {
+      const categorySum = Object.values(d.category_points || {}).reduce((s: number, v) => s + (Number(v) || 0), 0)
+      return {
+        date: d.date,
+        points: categorySum + (d.daily_bonuses || 0) + (d.daily_deductions || 0),
+        categories: d.category_points || {},
+      }
+    })
 
     // Get recent weeks
     const { data: recentWeeksData } = await supabase

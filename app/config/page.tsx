@@ -368,7 +368,7 @@ export default function ConfigPage() {
         description="Configure your reward system"
       />
       <div className="min-h-screen bg-slate-50 pb-24 lg:pb-0">
-        <div className="px-4 sm:px-6 lg:px-8 py-6">
+        <div className="px-4 sm:px-6 lg:pl-6 lg:pr-8 py-6">
         {/* Success/Error Message */}
         {message && (
           <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg flex items-center gap-2 text-sm ${

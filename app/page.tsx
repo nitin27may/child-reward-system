@@ -208,7 +208,7 @@ export default function DashboardPage() {
         description={`Week of ${new Date(data.currentWeek.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
       />
       <div className="min-h-screen bg-slate-50 pb-24 lg:pb-0">
-        <div className="px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <div className="px-3 sm:px-6 lg:pl-6 lg:pr-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
           {/* Quick Actions */}
           <div className="flex gap-2 flex-shrink-0">
             <Link href="/tracking">

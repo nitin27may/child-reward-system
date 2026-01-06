@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
       category_points,
       daily_bonuses,
       daily_deductions,
+      screen_time_used,
       notes,
       bonus_events 
     } = body
@@ -175,6 +176,10 @@ export async function POST(request: NextRequest) {
     const dateObj = new Date(date + 'T00:00:00')
     const dayOfWeek = dateObj.getDay()
 
+    // Calculate total points from category_points
+    const categoryPointsSum = Object.values(category_points || {}).reduce((sum: number, val) => sum + (Number(val) || 0), 0)
+    const totalPoints = categoryPointsSum + (daily_bonuses || 0) + (daily_deductions || 0)
+
     // Upsert daily tracking
     const { data: tracking, error: trackingError } = await supabase
       .from('daily_tracking')
@@ -185,6 +190,8 @@ export async function POST(request: NextRequest) {
         category_points: category_points || {},
         daily_bonuses: daily_bonuses || 0,
         daily_deductions: daily_deductions || 0,
+        total_points: totalPoints,
+        screen_time_used: screen_time_used || 0,
         notes: notes || null,
       }, {
         onConflict: 'child_id,date'

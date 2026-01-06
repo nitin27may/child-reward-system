@@ -188,7 +188,7 @@ export default function WeeklyReviewPage() {
         description="Track screen time and complete your weekly review"
       />
       <div className="min-h-screen bg-slate-50 pb-24 lg:pb-0">
-        <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="px-4 sm:px-6 lg:pl-6 lg:pr-8 py-6 space-y-6">
         {/* Week Selector */}
         <Card className="border-0 shadow-sm">
           <CardContent className="py-4">
