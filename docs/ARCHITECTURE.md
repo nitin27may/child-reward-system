@@ -397,26 +397,26 @@ sequenceDiagram
 ```mermaid
 flowchart TD
     Request([HTTP Request]) --> Middleware[middleware.ts]
-    Middleware --> CheckCookie{Session cookie<br/>exists?}
+    Middleware --> CheckCookie{Session cookie exists?}
     
-    CheckCookie -->|No| PublicRoute{Is public route?<br/>/auth/*}
+    CheckCookie -->|No| PublicRoute{Is public route?}
     PublicRoute -->|Yes| Allow[Allow access]
-    PublicRoute -->|No| Redirect1[Redirect to /auth/login]
+    PublicRoute -->|No| Redirect1[Redirect to login]
     
-    CheckCookie -->|Yes| RefreshSession[Supabase:<br/>refreshSession()]
+    CheckCookie -->|Yes| RefreshSession[Supabase refreshSession]
     RefreshSession --> Valid{Session valid?}
     
-    Valid -->|Yes| UpdateCookie[Update cookie<br/>Set-Cookie header]
+    Valid -->|Yes| UpdateCookie[Update cookie]
     Valid -->|No| ClearCookie[Clear invalid cookie]
     
     UpdateCookie --> ProtectedRoute{Is protected route?}
-    ClearCookie --> Redirect2[Redirect to /auth/login]
+    ClearCookie --> Redirect2[Redirect to login]
     
-    ProtectedRoute -->|Yes & Authed| Allow
+    ProtectedRoute -->|Yes and Authed| Allow
     ProtectedRoute -->|No| Allow
-    ProtectedRoute -->|Yes & Not Authed| Redirect2
+    ProtectedRoute -->|Yes and Not Authed| Redirect2
     
-    Allow --> NextRequest[Continue to page/API]
+    Allow --> NextRequest[Continue to page or API]
     Redirect1 --> End([Response])
     Redirect2 --> End
     NextRequest --> End
@@ -430,47 +430,47 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([User opens Tracking page]) --> LoadPage[Load /tracking]
+    Start([User opens Tracking page]) --> LoadPage[Load tracking page]
     LoadPage --> CheckAuth{Authenticated?}
-    CheckAuth -->|No| LoginRedirect[Redirect to /auth/login]
+    CheckAuth -->|No| LoginRedirect[Redirect to login]
     CheckAuth -->|Yes| CheckRole{Role?}
     
-    CheckRole -->|Child| Deny[Show "Access Denied"]
+    CheckRole -->|Child| Deny[Show Access Denied]
     CheckRole -->|Parent| LoadChildren[Fetch children list]
     
     LoadChildren --> SelectChild[Select child from dropdown]
-    SelectChild --> SelectDate[Select date - cannot be future]
-    SelectDate --> FetchTracking[GET /api/v2/tracking<br/>?childId=X&date=Y]
+    SelectChild --> SelectDate[Select date]
+    SelectDate --> FetchTracking[GET tracking data]
     
-    FetchTracking --> HasData{Data exists<br/>for date?}
-    HasData -->|No| ShowEmpty[Show empty categories<br/>with 0 points]
-    HasData -->|Yes| PopulateForm[Populate form with<br/>existing data]
+    FetchTracking --> HasData{Data exists?}
+    HasData -->|No| ShowEmpty[Show empty form]
+    HasData -->|Yes| PopulateForm[Populate form]
     
     ShowEmpty --> DisplayForm[Display tracking form]
     PopulateForm --> DisplayForm
     
     DisplayForm --> UserAction{User action?}
     
-    UserAction -->|Increment category| Validate1{Within<br/>0 to max_points?}
+    UserAction -->|Increment category| Validate1{Within range?}
     Validate1 -->|Yes| UpdateLocal1[Update local state]
     Validate1 -->|No| ShowError1[Show error toast]
     UpdateLocal1 --> UserAction
     
-    UserAction -->|Add bonus| ValidateBonus{Positive points?}
+    UserAction -->|Add bonus| ValidateBonus{Valid points?}
     ValidateBonus -->|Yes| AddBonus[Add to bonus array]
     ValidateBonus -->|No| ShowError2[Show error]
     AddBonus --> UserAction
     
-    UserAction -->|Add deduction| ValidateDeduction{Negative points?}
+    UserAction -->|Add deduction| ValidateDeduction{Valid points?}
     ValidateDeduction -->|Yes| AddDeduction[Add to deduction array]
     ValidateDeduction -->|No| ShowError3[Show error]
     AddDeduction --> UserAction
     
-    UserAction -->|Save| PreparePayload[Prepare JSON:<br/>categoryPoints JSONB<br/>bonuses array<br/>deductions array]
-    PreparePayload --> SaveAPI[POST /api/v2/tracking]
+    UserAction -->|Save| PreparePayload[Prepare JSON payload]
+    PreparePayload --> SaveAPI[POST to API]
     
-    SaveAPI --> DBOperation[UPSERT daily_tracking]
-    DBOperation --> CalcTrigger[Trigger:<br/>calculate_daily_total_points()]
+    SaveAPI --> DBOperation[UPSERT daily tracking]
+    DBOperation --> CalcTrigger[Calculate totals]
     CalcTrigger --> ReturnData[Return updated record]
     ReturnData --> ShowSuccess[Show success toast]
     ShowSuccess --> DisplayForm
