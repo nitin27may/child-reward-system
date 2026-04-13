@@ -1,187 +1,189 @@
-# Child Reward System - Dual Track Earning
+# Child Reward System
 
-A comprehensive reward tracking system with two independent tracks:
-1. **Weekly Screen Time Track** - Resets every Monday
-2. **Christmas Fund Track** - Cumulative savings until Christmas 2025
+A family-scale reward and behavior-tracking app with two independent tracks:
+
+1. **Weekly Screen Time Track** — resets every Monday
+2. **Christmas Fund Track** — cumulative savings toward a yearly goal
+
+Multi-family, multi-child, Row-Level-Security isolated. Built on Next.js 16 (App Router) and Supabase (Postgres + Auth).
 
 ## Features
 
-✨ **Dual-Track System**
-- Screen Time Points: Earn points Monday-Friday, redeem on weekends
-- Christmas Fund Points: Accumulate money towards a Christmas goal
-- Both tracks can go negative (consequences system)
-
-📊 **Beautiful Dashboard**
-- Real-time tracking of both reward tracks
-- Interactive charts and visualizations
-- Weekly and monthly summaries
-- Behavior trend analysis
-
-📱 **Daily Tracking**
-- 5 category tracking: Health, Screen Discipline, Self-Study, Household, Behavior
-- Quick-add bonuses and deductions
-- Real-time point calculation
-
-📅 **Weekly Reviews**
-- Comprehensive week summaries
-- Screen time usage tracking
-- Goal setting for next week
-
-⚙️ **Configurable**
-- Adjustable point conversion rates (points to minutes, points to dollars)
-- Customizable Christmas goal
-- Flexible screen time limits
+- **Dual-track points** — screen-time points reset weekly; Christmas-fund points accumulate. Both can go negative for real consequences.
+- **Daily tracking** — five configurable categories per family (Health, Screen Discipline, Self-Study, Household, Behavior & Respect) with bonus/deduction presets.
+- **Weekly review** — finalize a week, log screen-time used, set next week's goal.
+- **Dashboard** — multi-child switcher, charts, behavior trends, Christmas-fund progress.
+- **RLS-enforced multi-tenancy** — one parent account seeds a family; children optionally get read-only login.
+- **Configurable conversion rates** — points → minutes and points → dollars per family.
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript
-- **Database**: SQLite with Prisma ORM
-- **UI**: shadcn/ui components with Tailwind CSS v4
-- **Charts**: Recharts for data visualization
-- **Theme**: Sky blue / Sea theme with smooth gradients
+- **Framework**: Next.js 16 (App Router, Server Components, Turbopack dev)
+- **Language**: TypeScript (strict)
+- **Database**: Supabase Postgres with Row Level Security
+- **Auth**: Supabase Auth (email/password)
+- **UI**: shadcn/ui + Tailwind CSS v4
+- **Charts**: Recharts
+- **Migrations**: Supabase CLI (`supabase/migrations/*.sql`)
 
 ## Getting Started
 
-### Installation
+### Prerequisites
 
-1. Install dependencies:
+- Node.js 20+
+- [Supabase CLI](https://supabase.com/docs/guides/cli) 2.84+
+- A Supabase project (free tier is fine)
+
+### 1. Install dependencies
+
 ```bash
 npm install
 ```
 
-2. Initialize the database:
+### 2. Configure environment
+
+Copy the example and fill in values from your Supabase project's **Project Settings → API** and **Project Settings → Database**:
+
 ```bash
-npm run db:push
+cp .env.example .env
 ```
 
-3. Start the development server:
+Required keys:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
+DATABASE_URL=postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+SUPABASE_ACCESS_TOKEN=<personal-access-token>
+```
+
+### 3. Link the CLI to your Supabase project
+
+```bash
+supabase link --project-ref <project-ref>
+```
+
+### 4. Apply migrations
+
+```bash
+supabase db push
+```
+
+This runs every file in [supabase/migrations/](supabase/migrations/) against the linked project.
+
+### 5. Load seed data (optional, recommended for first run)
+
+```bash
+supabase db push --include-seed
+```
+
+The seed creates a **Demo Family** with two children, default categories / bonus / deduction presets, and a week of sample daily tracking — enough to light up the dashboard before a real user signs up. See [supabase/seed.sql](supabase/seed.sql).
+
+### 6. Run the app
+
 ```bash
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000)
+Open [http://localhost:3000](http://localhost:3000) and sign up. The `handle_new_user` trigger creates your profile automatically; call `initialize_family()` (from the app's onboarding screen) to bootstrap default categories and presets for your family.
 
-### Initial Setup
+## Resetting a new instance
 
-1. Navigate to **Settings** page
-2. Configure conversion rates:
-   - **Points to Minutes**: How many minutes per point (default 0.5)
-   - **Points to Dollars**: Dollar value per point (default $1)
-   - **Christmas Goal**: Set target amount (default $500)
-   - **Max Weekly Screen Time**: Maximum minutes (default 60)
-
-## Usage Guide
-
-### Daily Workflow
-
-1. **Daily Tracking** (every evening)
-   - Select date
-   - Mark points in each category
-   - Add bonuses/deductions using quick buttons
-   - Add notes
-   - Save
-
-2. **Dashboard** (anytime)
-   - View current week progress
-   - Check Christmas fund
-   - Review behavior trends
-
-3. **Weekly Review** (Sunday evening)
-   - Review week performance
-   - Enter screen time used
-   - Write reflection notes
-   - Set behavior goal for next week
-
-## Database Commands
+For a greenfield Supabase project:
 
 ```bash
-# Push schema changes
-npm run db:push
-
-# Open Prisma Studio (visual database browser)
-npm run db:studio
-
-# Reset database (deletes all data)
-rm prisma/dev.db && npm run db:push
+supabase link --project-ref <project-ref>
+supabase db push                  # apply schema migrations
+supabase db push --include-seed   # load demo data
 ```
+
+For a fresh local database (requires Docker):
+
+```bash
+supabase start
+supabase db reset                 # applies migrations + seed automatically
+```
+
+## Database Layout
+
+Ten tables, all in `public`, all RLS-protected:
+
+| Table                 | Purpose                                                |
+| --------------------- | ------------------------------------------------------ |
+| `families`            | Tenant root                                            |
+| `profiles`            | Extends `auth.users` with family + role                |
+| `children`            | Trackable children in a family                         |
+| `configurations`      | Per-family conversion rates and goals                  |
+| `categories`          | Per-family point categories                            |
+| `bonus_presets`       | Per-family quick-add bonuses                           |
+| `deduction_presets`   | Per-family quick-add deductions                        |
+| `daily_tracking`      | One row per child per day                              |
+| `bonus_events`        | Individual bonus/deduction events on a tracking row    |
+| `weekly_summaries`    | Aggregated weekly totals per child                     |
+
+Key functions:
+
+- `initialize_family(name, user_id)` — creates a family and seeds default categories / presets.
+- `get_weekly_summary(child_id, week_start, week_end)` — aggregates tracking for a week.
+- `upsert_weekly_summary(...)` — persists weekly totals.
+- `update_daily_tracking_total` trigger — keeps `daily_tracking.total_points` in sync.
+- `auto_update_weekly_summary` trigger — rolls forward weekly summaries when tracking changes.
+
+See [docs/DATABASE.md](docs/DATABASE.md) for the full ER diagram and policy reference.
 
 ## Project Structure
 
 ```
-├── app/
-│   ├── api/              # API routes
-│   ├── config/           # Settings page
-│   ├── tracking/         # Daily tracking
-│   ├── weekly/           # Weekly review
-│   └── page.tsx          # Dashboard
-├── components/
-│   ├── ui/               # UI components
-│   └── navigation.tsx    # Nav bar
-├── lib/
-│   ├── prisma.ts         # DB client
-│   └── utils.ts          # Utilities
-└── prisma/
-    └── schema.prisma     # DB schema
+├── app/                        # Next.js App Router pages + API routes
+│   ├── api/                    # Route handlers
+│   ├── config/                 # Settings page
+│   ├── tracking/               # Daily tracking page
+│   ├── weekly/                 # Weekly review page
+│   └── page.tsx                # Dashboard
+├── components/                 # UI + shared components
+├── contexts/                   # Client-side React contexts
+├── docs/                       # Architecture, API, DB, deployment docs
+├── lib/                        # Supabase client, utils
+├── middleware.ts               # Supabase auth middleware
+├── scripts/                    # Dev / maintenance scripts
+├── supabase/
+│   ├── config.toml             # Supabase CLI config
+│   ├── migrations/             # Versioned SQL migrations
+│   └── seed.sql                # Demo data loaded by `db reset` / `db push --include-seed`
+└── types/                      # TypeScript types (incl. generated Supabase types)
 ```
 
 ## Point System
 
-**Base Categories (0-12 points/day):**
-- 🥗 Health & Nutrition (0-3)
-- 📱 Screen Discipline (0-2)
-- 📚 Self-Study (0-2)
-- 🏠 Household (0-3)
-- ⭐ Behavior (0-2)
+**Base categories (0–12 points/day):**
 
-**Bonuses:** Perfect day (+2), Extra help (+3), etc.
-**Deductions:** Disrespect (-2), Refused chore (-3), etc.
+- 🥗 Health & Nutrition (0–3)
+- 📱 Screen Discipline (0–2)
+- 📚 Self-Study (0–2)
+- 🏠 Household (0–3)
+- ⭐ Behavior & Respect (0–2)
 
-## Troubleshooting
+**Bonuses:** perfect day (+2), extra help (+3), etc.
+**Deductions:** disrespect (−2), refused chore (−3), etc.
 
-**Prisma Client not generated:**
-```bash
-npx prisma generate
-```
-
-**Build errors:**
-```bash
-rm -rf .next
-npm run dev
-```
-
-## Support
-
-Check browser console for errors. Verify `prisma/dev.db` exists.
+All presets are per-family and fully editable.
 
 ## Documentation
 
-Comprehensive documentation for developers and AI agents:
+- [Architecture](docs/ARCHITECTURE.md) — system diagrams, data flow, auth flow
+- [Features](docs/FEATURES.md) — feature inventory and business logic
+- [Database](docs/DATABASE.md) — schema, ER diagrams, RLS policies, functions
+- [API](docs/API.md) — endpoints, request/response shapes
+- [Deployment](docs/DEPLOYMENT.md) — Supabase + Vercel production setup
+- [Future Roadmap](docs/FUTURE_ROADMAP.md) — planned work
 
-- **[Architecture](docs/ARCHITECTURE.md)** - System architecture, component diagrams, data flow, authentication flow, deployment architecture with Mermaid diagrams
-- **[Features](docs/FEATURES.md)** - Complete feature inventory with all 8 major features, dual-track system, business logic, and UI/UX details
-- **[Database](docs/DATABASE.md)** - Database schema with ER diagrams, all 10 tables, RLS policies, functions, triggers, and migrations
-- **[API](docs/API.md)** - Complete API reference for all V2 endpoints with request/response examples, TypeScript types, and cURL commands
-- **[Deployment](docs/DEPLOYMENT.md)** - Production deployment guide for Supabase and Vercel, including setup, configuration, monitoring, and troubleshooting
-- **[Future Roadmap](docs/FUTURE_ROADMAP.md)** - Planned features Q1-Q4 2026, including short-term goals, mobile app, adult tracking, and more
+## Troubleshooting
 
-## Future Features
+**`supabase db push` fails on a fresh project with "role already exists":** you're pushing against a database that already has some of the objects. Reset with `supabase db reset` (local) or drop and recreate the project (remote).
 
-### Coming Soon (Q1 2026)
-- 🎯 **Short-term goals** - Set multiple goals with custom deadlines
-- ✅ **Weekly finalization** - Mark weeks as complete and track allowance payout
-- 📄 **Data export** - Export tracking data to CSV/PDF/Excel
-- 📧 **Email notifications** - Automated weekly summaries and goal completion alerts
+**Dashboard is empty after signup:** make sure you've loaded the seed (`--include-seed`) or completed the onboarding flow that calls `initialize_family()`.
 
-### On the Roadmap (Q2-Q4 2026)
-- 👨‍💼 **Adult habit tracking** - Generalize system for adult habit tracking with custom reward types
-- 🏆 **Achievement system** - Gamification with badges, streaks, and milestones
-- 📱 **Mobile app** - React Native apps for iOS and Android
-- 🤖 **AI insights** - Machine learning powered behavior predictions and recommendations
-- 👨‍👩‍👧‍👦 **Family collaboration** - Multi-parent access and real-time sync
-- 🌐 **Multi-language** - Support for Spanish, French, German, and Mandarin
-
-See [FUTURE_ROADMAP.md](docs/FUTURE_ROADMAP.md) for complete details.
+**Local dev can't reach Supabase:** check that `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set in `.env`, then restart `npm run dev`.
 
 ---
 

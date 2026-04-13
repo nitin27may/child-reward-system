@@ -2,131 +2,471 @@
 
 Complete feature documentation for the Child Reward System - a comprehensive behavior tracking and reward management platform for families.
 
-## Core Features Overview
+---
 
-The system implements a **dual-track point system** where children earn points through daily activities that convert simultaneously to:
-1. **Weekly Screen Time** (resets Monday)
-2. **Target Fund Savings** (cumulative year-to-date)
+## Table of Contents
+
+1. [Core System Overview](#core-system-overview)
+2. [Authentication & User Management](#1-authentication--user-management)
+3. [Multi-Family Multi-Tenancy](#2-multi-family-multi-tenancy)
+4. [Dashboard & Analytics](#3-dashboard--analytics)
+5. [Daily Tracking System](#4-daily-tracking-system)
+6. [Weekly Review & Management](#5-weekly-review--management)
+7. [Children Management](#6-children-management)
+8. [Configuration & Settings](#7-configuration--settings)
+9. [Progressive Web App (PWA)](#8-progressive-web-app-pwa)
+10. [UI/UX Features](#uiux-features)
+11. [Performance & Security](#performance--security)
 
 ---
 
-## 1. Multi-Family Multi-Tenancy
+## Core System Overview
+
+The system implements a **dual-track point system** where children earn points through daily activities that convert simultaneously to:
+
+1. **Weekly Screen Time Track** (resets every Monday)
+   - Short-term incentive
+   - Capped at maximum weekly limit
+   - Non-cumulative, resets weekly
+
+2. **Target Fund Savings Track** (cumulative year-to-date)
+   - Long-term savings goal
+   - Accumulates continuously
+   - Tracks progress toward custom target
+   - Customizable target name and date
+
+### Point System Formula:
+```
+Daily Total = Category Points + Bonuses + Deductions
+
+Screen Time (minutes) = Weekly Points × points_to_minutes (capped at max)
+Fund Contribution ($) = All-Time Points × points_to_dollars
+```
+
+**Key Feature:** Points can go negative (accountability system)
+
+---
+
+## 1. Authentication & User Management
+
+**Location:** [app/auth/*](../app/auth/), [contexts/auth-context.tsx](../contexts/auth-context.tsx)
+
+### 1.1 Sign Up & Sign In
+
+**Multiple Authentication Methods:**
+- **Email/Password:** Traditional authentication with password reset
+- **Google OAuth 2.0:** One-click sign-in with Google account
+
+**Implementation:**
+- Supabase Auth for authentication backend
+- PKCE flow for OAuth security
+- HTTP-only secure cookies for session management
+- 7-day session expiry (configurable)
+
+### 1.2 User Roles
+
+**Two distinct roles with different permissions:**
+
+| Role | Description | Access Level |
+|------|-------------|--------------|
+| **Parent** | Family administrator | Full CRUD on all family data |
+| **Child** | Family member | Read-only access to own data |
+
+### 1.3 Parent Signup Flow
+
+```
+1. User signs up with email/password or Google
+2. System creates auth.users record
+3. Trigger automatically creates profile record (role='parent')
+4. Redirect to family setup page
+5. User enters family name
+6. System initializes:
+   - Family record
+   - Default configuration
+   - 5 default categories
+   - 4 bonus presets
+   - 7 deduction presets
+7. Redirect to dashboard
+```
+
+### 1.4 Child Login Flow
+
+**Unique feature:** Children can have optional dashboard access
+
+```
+1. Parent adds child with email in Children Management
+2. Child signs up using that email
+3. System detects email match
+4. Creates profile with role='child'
+5. Links profile to child record
+6. Inherits family_id
+7. Child can log in to view read-only dashboard
+```
+
+**Dashboard Access Control:**
+- Parents can enable/disable dashboard access per child
+- Children only see their own data
+- No modification permissions
+
+### 1.5 Session Management
+
+**Features:**
+- Cookie-based sessions (httpOnly, secure, sameSite)
+- Automatic token refresh via middleware
+- Multi-device support
+- Graceful session expiry handling
+- Automatic redirect to login on session loss
+
+**Middleware Protection:**
+- All routes except `/auth/*` require authentication
+- Automatic session refresh on each request
+- Redirect with return URL for seamless navigation
+
+### 1.6 Family Setup
+
+**Location:** [app/auth/setup/page.tsx](../app/auth/setup/page.tsx)
+
+**One-time family initialization:**
+- Only shown to new parents without family
+- Creates family record
+- Links profile to family
+- Initializes default configuration
+- Pre-populates suggested family name
+
+**Features:**
+- Auto-detects if family already exists (redirects to dashboard)
+- Pre-fills family name suggestion based on user's name
+- Single-step setup process
+- Success confirmation before redirect
+
+### 1.7 Authentication Error Handling
+
+**Location:** [app/auth/error/page.tsx](../app/auth/error/page.tsx)
+
+- User-friendly error page
+- Clear error messaging
+- Quick links back to login/signup
+- Graceful OAuth failure handling
+
+---
+
+## 2. Multi-Family Multi-Tenancy
+
+---
+
+---
+
+## 2. Multi-Family Multi-Tenancy
 
 **Complete data isolation using PostgreSQL Row Level Security (RLS)**
 
-- Each family operates independently with separate:
-  - Configuration settings (conversion rates, goals)
-  - Children roster
-  - Custom categories, bonuses, deductions
-  - Historical tracking data
+### 2.1 Core Concept
 
-- **Role-based access:**
-  - **Parent:** Full CRUD access to all family data
-  - **Child:** Read-only access to own data (if enabled)
+Each family operates in complete isolation with their own:
+- Configuration settings (conversion rates, goals, target date)
+- Children roster
+- Custom categories
+- Custom bonus/deduction presets
+- Complete tracking history
+- Weekly summaries
 
-- **Implementation:** `families` and `profiles` tables with RLS policies using helper functions: `get_user_family_id()`, `is_parent()`, `child_in_family()`
+### 2.2 Role-Based Access Control
+
+**Parent Access:**
+- Full CRUD operations on all family data
+- Add/edit/delete children
+- Modify configuration
+- Manage categories, bonuses, deductions
+- View all children's data
+- Access all historical data
+
+**Child Access (optional):**
+- Read-only access to own data only
+- View own dashboard (if enabled by parent)
+- Cannot modify any data
+- Cannot view siblings' data
+- Cannot access configuration
+
+### 2.3 Implementation
+
+**Database Level:**
+- `families` table stores family metadata
+- `family_id` foreign key on all related tables
+- RLS policies on every table
+
+**Helper Functions:**
+- `get_user_family_id()` - Returns authenticated user's family ID
+- `is_parent()` - Checks if user has parent role
+- `child_in_family()` - Validates child belongs to user's family
+
+**Security:**
+- All queries automatically filtered by family_id
+- Attempting to access other family's data returns 404
+- No cross-family data leakage possible
+- Enforced at database level (cannot be bypassed)
 
 ---
 
-## 2. Dashboard (Real-time Analytics)
+## 3. Dashboard & Analytics
 
 **Location:** [app/page.tsx](../app/page.tsx), [app/api/v2/dashboard/route.ts](../app/api/v2/dashboard/route.ts)
 
-### Features:
-- **Current week progress:**
-  - Total points earned
-  - Screen time earned vs maximum cap
-  - Progress bars and percentages
-  - Days tracked counter
-  - Average daily points
+The dashboard provides real-time analytics and comprehensive behavior tracking visualization.
 
-- **Target fund progress:**
-  - Year-to-date cumulative savings
-  - Goal amount with progress percentage
-  - Visual progress indicator
-  - Dollar amount display
+### 3.1 Current Week Progress
 
-- **30-day behavior trends:**
-  - Line chart showing daily point fluctuations
-  - Category breakdown tooltips
-  - Interactive data points
+**Statistics Displayed:**
+- Total points earned this week (Monday-Sunday)
+- Days tracked counter (out of 7)
+- Average daily points
+- Screen time earned (in minutes)
+- Screen time cap/maximum
+- Progress bar showing screen time utilization
+- Percentage progress display
 
-- **Recent weeks summary:**
-  - Last 4 weeks performance cards
-  - Week-by-week comparison
-  - Screen time and fund contributions
+**Screen Time Calculation:**
+```
+Earned Minutes = Total Weekly Points × points_to_minutes
+Capped Minutes = MIN(Earned Minutes, max_weekly_screen_time)
+```
 
-- **Child selector dropdown:**
-  - Quick switch between children
-  - Avatar display with initials
-  - Persistent selection (localStorage)
+### 3.2 Target Fund Progress
 
-### Charts:
-- Line Chart: 30-day behavior trends (Recharts)
-- Bar Chart: Weekly progress breakdown
-- Progress Bars: Screen time and fund progress
-- Stat Cards: Key metrics with icons
+**Year-to-Date Tracking:**
+- Total fund accumulated (in dollars)
+- Custom goal amount
+- Progress percentage
+- Visual progress bar
+- Days until target date
+- Custom target description (e.g., "Summer Camp Fund")
+
+**Fund Calculation:**
+```
+Fund Amount = Total All-Time Points × points_to_dollars
+Progress = (Fund Amount / Goal Amount) × 100%
+```
+
+### 3.3 Behavior Trends (30-Day Chart)
+
+**Interactive Line Chart:**
+- Shows last 30 days of activity
+- Daily point totals plotted
+- Smooth line visualization
+- Interactive tooltips on hover
+- Category breakdown in tooltips
+- Responsive design (adjusts to screen size)
+
+**Powered by:** Recharts library (v3.6.0)
+
+### 3.4 Recent Weeks Summary
+
+**Last 4-8 Weeks Display:**
+- Week-by-week performance cards
+- Week number and date range
+- Total points for each week
+- Screen time earned
+- Fund contribution
+- Quick comparison across weeks
+- Scrollable card layout
+
+### 3.5 Child Selector
+
+**Multi-Child Support:**
+- Dropdown selector in header
+- Displays child name with avatar
+- Color-coded avatar backgrounds
+- Initials display
+- Persistent selection (localStorage)
+- Quick switch between children
+- Real-time dashboard update on selection change
+
+**Responsive Behavior:**
+- Compact mode on mobile
+- Expanded mode on desktop
+- Touch-friendly on mobile devices
+
+### 3.6 Charts & Visualizations
+
+**Chart Types Used:**
+1. **Line Chart:** 30-day behavior trends
+2. **Area Chart:** Weekly progress visualization
+3. **Bar Chart:** Historical weekly comparison
+4. **Progress Bars:** Screen time and fund progress
+5. **Stat Cards:** Key metrics with icons
+
+**Chart Features:**
+- Interactive tooltips
+- Responsive sizing
+- Smooth animations
+- Loading states
+- Empty state handling
+- Dynamic data updates
+
+### 3.7 Welcome Page (Unauthenticated)
+
+**For visitors not logged in:**
+- Feature highlights
+- System benefits
+- Call-to-action buttons:
+  - Sign Up
+  - Sign In
+  - View Demo (future)
+- Attractive hero section
+- Feature showcase with icons
 
 ---
 
-## 3. Daily Tracking System
+## 4. Daily Tracking System
 
 **Location:** [app/tracking/page.tsx](../app/tracking/page.tsx), [app/api/v2/tracking/route.ts](../app/api/v2/tracking/route.ts)
 
-### Features:
-- **Date navigation:**
-  - Navigate to any past date or today
-  - Chevron left/right for day-by-day browsing
-  - Cannot track future dates
+The core feature for recording daily behavior and earning points.
 
-- **Dynamic category tracking:**
-  - Loads categories from family configuration
-  - Each category: current value with +/- buttons
-  - Real-time point validation (0 to max_points)
-  - Emoji icons for visual identification
+### 4.1 Date Navigation
 
-- **Default 5 categories** (fully customizable):
-  - 🥗 Health & Nutrition (max 3 pts)
-  - 📱 Screen Discipline (max 2 pts)
-  - 📚 Self-Study & Learning (max 2 pts)
-  - 🏠 Household Contribution (max 3 pts)
-  - ⭐ Behavior & Respect (max 2 pts)
+**Flexible Date Selection:**
+- Calendar-style date picker
+- Navigate to any past date
+- Quick "Today" button
+- Chevron left/right for day-by-day browsing
+- **Cannot track future dates** (validation enforced)
+- Displays selected date prominently
 
-- **Quick-add bonuses:**
-  - Preset options with emoji buttons
-  - Custom point values (positive)
-  - Multiple bonuses per day
-  - Examples: "Perfect sugar-free day" (+2), "Extraordinary helpfulness" (+3)
+### 4.2 Dynamic Category Tracking
 
-- **Quick-add deductions:**
-  - Preset options with emoji buttons
-  - Negative point values
-  - Examples: "Disrespectful behavior" (-2), "Lied about something" (-5)
+**Category System:**
+- Loads categories from family configuration
+- Each category displays:
+  - Emoji icon for visual identification
+  - Category name
+  - Current points value
+  - Maximum points limit
+  - Plus (+) and minus (-) buttons
+  
+**Default 5 Categories** (fully customizable):
+1. 🥗 **Health & Nutrition** (0-3 points)
+2. 📱 **Screen Discipline** (0-2 points)
+3. 📚 **Self-Study & Learning** (0-2 points)
+4. 🏠 **Household Contribution** (0-3 points)
+5. ⭐ **Behavior & Respect** (0-2 points)
 
-- **Daily notes:**
-  - Free-text observations
-  - Character limit: 500 chars
+**Real-Time Validation:**
+- Points must be between 0 and max_points
+- Increment/decrement buttons
+- Visual feedback on limit reached
+- Prevents invalid values
 
-- **Real-time calculations:**
-  - Total = category_points + bonuses + deductions
-  - Screen time earned = total × points_to_minutes
-  - Fund contribution = total × points_to_dollars
+### 4.3 Quick-Add Bonuses
 
-### Data Storage:
-**category_points:** JSONB for flexibility
-```json
+**Preset Bonus System:**
+- Loads bonus presets from configuration
+- Quick-click emoji buttons
+- Automatically adds positive points
+- Multiple bonuses can be added per day
+- Each bonus displays:
+  - Emoji icon
+  - Description
+  - Point value
+  - Remove button (×)
+
+**Default 4 Bonus Presets:**
+- ⭐ Perfect sugar-free day (+2)
+- 🌟 Extraordinary helpfulness (+3)
+- 📚 Homework ahead of schedule (+2)
+- 🤝 Helped sibling/peer (+2)
+
+**Custom Bonus:**
+- Text input field
+- Custom point value
+- Manual add button
+
+### 4.4 Quick-Add Deductions
+
+**Preset Deduction System:**
+- Loads deduction presets from configuration
+- Quick-click emoji buttons
+- Automatically subtracts points (negative values)
+- Multiple deductions per day
+- Each deduction displays:
+  - Emoji icon
+  - Description
+  - Negative point value
+  - Remove button (×)
+
+**Default 7 Deduction Presets:**
+- 😤 Disrespectful behavior (-2)
+- ❌ Refused chore (-3)
+- 🤥 Lied about something (-5)
+- 🤜 Physical aggression (-5)
+- 📱 Sneaking screen time (-5)
+- 😴 Morning routine not completed (-1)
+- 😡 Tantrum/meltdown (-3)
+
+**Custom Deduction:**
+- Text input field
+- Custom negative point value
+- Manual add button
+
+### 4.5 Notes & Observations
+
+**Daily Notes Field:**
+- Free-text area for observations
+- Character limit: 500 characters
+- Optional field
+- Saved with tracking data
+- Useful for behavior context
+
+### 4.6 Real-Time Calculations
+
+**Live Point Totals:**
+- Category points sum
+- Bonuses sum (always positive)
+- Deductions sum (always negative)
+- **Grand Total** = Categories + Bonuses + Deductions
+
+**Dual-Track Display:**
+- Screen time earned today (minutes)
+- Fund contribution today (dollars)
+- Formulas applied in real-time
+
+**Visual Feedback:**
+- Color-coded totals (green/red)
+- Progress indicators
+- Immediate updates on any change
+
+### 4.7 Data Persistence
+
+**Save Mechanism:**
+- Explicit "Save" button
+- UPSERT operation (create or update)
+- Success/error toast notifications
+- Optimistic UI updates
+- Auto-save not implemented (intentional - requires parent review)
+
+**Data Storage:**
+```typescript
 {
-  "healthNutrition": 3,
-  "screenDiscipline": 2,
-  "selfStudy": 2,
-  "household": 3,
-  "behaviorRespect": 2
+  child_id: UUID,
+  date: DATE,
+  category_points: JSONB, // { "healthNutrition": 3, ... }
+  bonuses: ARRAY,         // [{ description, points }, ...]
+  deductions: ARRAY,      // [{ description, points }, ...]
+  notes: TEXT,
+  total_points_earned: INTEGER  // Calculated by trigger
 }
 ```
 
+### 4.8 Empty State Handling
+
+**When No Data Exists:**
+- Shows empty form with all categories at 0
+- No bonuses/deductions
+- Empty notes field
+- Clear call-to-action to start tracking
+
 ---
 
-## 4. Weekly Review & Management
+## 5. Weekly Review & Management
 
 **Location:** [app/weekly/page.tsx](../app/weekly/page.tsx), [app/api/v2/weekly/route.ts](../app/api/v2/weekly/route.ts)
 
