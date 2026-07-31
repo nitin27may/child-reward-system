@@ -16,7 +16,20 @@ const outputPath = join(root, 'public', 'sw.js');
 // VERCEL_GIT_COMMIT_SHA is set by Vercel's own builder; GITHUB_SHA covers
 // `vercel build` running inside GitHub Actions, where the former is absent.
 // The timestamp keeps local builds unique.
-const sha = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA;
+// `vercel build` runs the build command in a sanitized environment, so
+// GITHUB_SHA does not survive into prebuild even though the workflow step has
+// it. CI therefore writes the SHA to .build-sha, which travels with the working
+// directory and is read here as a fallback.
+let sha = process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA;
+
+if (!sha) {
+  try {
+    sha = (await readFile(join(root, '.build-sha'), 'utf8')).trim();
+  } catch {
+    // Not running in CI — fall through to the timestamp below.
+  }
+}
+
 const buildId = sha ? sha.slice(0, 12) : `local-${Date.now()}`;
 
 const template = await readFile(templatePath, 'utf8');

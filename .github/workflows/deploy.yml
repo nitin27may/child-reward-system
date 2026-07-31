@@ -110,8 +110,13 @@ jobs:
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=${{ steps.target.outputs.environment }} --scope=$VERCEL_SCOPE
 
-      # scripts/build-sw.mjs reads GITHUB_SHA here to stamp the service worker
-      # cache names, so each deploy evicts the previous deploy's caches.
+      # `vercel build` isolates the build command's environment, so GITHUB_SHA
+      # does not reach scripts/build-sw.mjs. Hand it over via a file instead,
+      # otherwise the service worker cache names fall back to a local timestamp
+      # and stop identifying the deploy.
+      - name: Stamp build id
+        run: echo "$GITHUB_SHA" > .build-sha
+
       - name: Build
         run: vercel build ${{ steps.target.outputs.flag }} --scope=$VERCEL_SCOPE
 
