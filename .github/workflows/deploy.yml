@@ -58,12 +58,18 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    # The Vercel CLI reads this automatically, so no step needs --token.
+    # The Vercel CLI reads VERCEL_TOKEN automatically, so no step needs --token.
     # Passing it as a flag meant an unset secret expanded to `--token=` and
     # failed with a misleading "missing a value" error instead of naming the
     # actual problem.
+    #
+    # --scope is required because the token is scoped to the team rather than
+    # to a personal account. Without it the CLI looks the project up without a
+    # teamId and fails with "Could not retrieve Project Settings", even though
+    # VERCEL_ORG_ID is set and the token is perfectly valid.
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_SCOPE: nitin27mays-projects
     steps:
       - name: Check required secrets
         run: |
@@ -102,12 +108,12 @@ jobs:
           fi
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=${{ steps.target.outputs.environment }}
+        run: vercel pull --yes --environment=${{ steps.target.outputs.environment }} --scope=$VERCEL_SCOPE
 
       # scripts/build-sw.mjs reads GITHUB_SHA here to stamp the service worker
       # cache names, so each deploy evicts the previous deploy's caches.
       - name: Build
-        run: vercel build ${{ steps.target.outputs.flag }}
+        run: vercel build ${{ steps.target.outputs.flag }} --scope=$VERCEL_SCOPE
 
       # Non-interactive `vercel deploy` writes a JSON result object to stdout,
       # not a bare URL — capturing the raw output would yield the whole blob.
@@ -115,7 +121,7 @@ jobs:
         id: deploy
         run: |
           set -o pipefail
-          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} | tee deploy.json
+          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --scope=$VERCEL_SCOPE | tee deploy.json
 
           url=$(jq -r '.deployment.url // empty' deploy.json)
           if [ -z "$url" ]; then
