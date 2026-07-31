@@ -30,9 +30,9 @@ jobs:
     name: Lint & typecheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -58,10 +58,31 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    # The Vercel CLI reads this automatically, so no step needs --token.
+    # Passing it as a flag meant an unset secret expanded to `--token=` and
+    # failed with a misleading "missing a value" error instead of naming the
+    # actual problem.
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Check required secrets
+        run: |
+          missing=0
+          for s in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
+            if [ -z "${!s}" ]; then
+              echo "::error::Secret $s is not set. Add it under Settings > Secrets and variables > Actions."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -81,12 +102,12 @@ jobs:
           fi
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=${{ steps.target.outputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=${{ steps.target.outputs.environment }}
 
       # scripts/build-sw.mjs reads GITHUB_SHA here to stamp the service worker
       # cache names, so each deploy evicts the previous deploy's caches.
       - name: Build
-        run: vercel build ${{ steps.target.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build ${{ steps.target.outputs.flag }}
 
       # Non-interactive `vercel deploy` writes a JSON result object to stdout,
       # not a bare URL — capturing the raw output would yield the whole blob.
@@ -94,8 +115,7 @@ jobs:
         id: deploy
         run: |
           set -o pipefail
-          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} \
-            --token=${{ secrets.VERCEL_TOKEN }} | tee deploy.json
+          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} | tee deploy.json
 
           url=$(jq -r '.deployment.url // empty' deploy.json)
           if [ -z "$url" ]; then
