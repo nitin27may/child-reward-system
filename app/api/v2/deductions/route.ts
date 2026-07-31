@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import type { TablesUpdate } from '@/types/supabase'
 
 export async function GET() {
   const supabase = await createClient()
@@ -115,7 +116,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Deduction ID required' }, { status: 400 })
     }
 
-    const updateData: Record<string, unknown> = {}
+    const updateData: TablesUpdate<'deduction_presets'> = {}
     if (name !== undefined) updateData.label = name
     if (points !== undefined) updateData.points = points
     if (description !== undefined) updateData.description = description

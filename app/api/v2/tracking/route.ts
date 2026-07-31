@@ -1,6 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 
+const DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const
+
 function getWeekStartEnd(dateStr: string) {
   // Parse the date string as a local date
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -172,9 +182,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Child not found' }, { status: 404 })
     }
 
-    // Calculate day_of_week (0 = Sunday, 6 = Saturday)
+    // daily_tracking.day_of_week is `text not null` holding the day name
+    // ('Sunday'...'Saturday'), matching supabase/seed.sql — not a 0-6 index.
     const dateObj = new Date(date + 'T00:00:00')
-    const dayOfWeek = dateObj.getDay()
+    const dayOfWeek = DAY_NAMES[dateObj.getDay()]
 
     // Calculate total points from category_points
     const categoryPointsSum = Object.values(category_points || {}).reduce((sum: number, val) => sum + (Number(val) || 0), 0)

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import type { TablesUpdate } from '@/types/supabase'
 
 function getWeekStartEnd(dateStr: string) {
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -20,6 +21,28 @@ function getWeekStartEnd(dateStr: string) {
   }
   
   return { weekStart: format(weekStart), weekEnd: format(weekEnd) }
+}
+
+/**
+ * weekly_summaries.year and .week_number are both `not null` with no default.
+ * Mirrors the database's upsert_weekly_summary: the calendar year of the week
+ * start, plus get_iso_week_number(week_start) — i.e. Postgres `extract(week …)`,
+ * which is the ISO-8601 week.
+ */
+function getYearAndWeek(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const date = new Date(Date.UTC(y, m - 1, d))
+
+  // Shift to the Thursday of this ISO week, then count weeks from Jan 1.
+  const isoDay = date.getUTCDay() || 7
+  const thursday = new Date(date)
+  thursday.setUTCDate(date.getUTCDate() + 4 - isoDay)
+  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1))
+  const weekNumber = Math.ceil(
+    ((thursday.getTime() - yearStart.getTime()) / 86400000 + 1) / 7
+  )
+
+  return { year: y, weekNumber }
 }
 
 export async function GET(request: NextRequest) {
@@ -148,6 +171,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate week boundaries
     const { weekStart, weekEnd } = getWeekStartEnd(date)
+    const { year, weekNumber } = getYearAndWeek(weekStart)
 
     // Get all tracking for this week
     const { data: trackingData, error: trackingError } = await supabase
@@ -169,13 +193,18 @@ export async function POST(request: NextRequest) {
       .from('weekly_summaries')
       .upsert({
         child_id: childId,
+        year,
+        week_number: weekNumber,
         week_start: weekStart,
         week_end: weekEnd,
         total_points: totalPoints,
         screen_time_earned: screenTimeEarned,
         allowance_earned: allowanceEarned,
       }, {
-        onConflict: 'child_id,week_start'
+        // Must name the actual unique constraint: weekly_summaries is
+        // unique(child_id, year, week_number). There is no unique index on
+        // (child_id, week_start), so the previous target could never match.
+        onConflict: 'child_id,year,week_number'
       })
       .select()
       .single()
@@ -200,15 +229,16 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, isPaid, paidAt, notes, screenTimeUsed } = body
+    // No paid_at column exists on weekly_summaries — only is_paid. Nothing in
+    // the UI ever sent paidAt, so writing it was silently dead.
+    const { id, isPaid, notes, screenTimeUsed } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Summary ID required' }, { status: 400 })
     }
 
-    const updateData: Record<string, unknown> = {}
+    const updateData: TablesUpdate<'weekly_summaries'> = {}
     if (isPaid !== undefined) updateData.is_paid = isPaid
-    if (paidAt !== undefined) updateData.paid_at = paidAt
     if (notes !== undefined) updateData.notes = notes
     if (screenTimeUsed !== undefined) updateData.screen_time_used = screenTimeUsed
 

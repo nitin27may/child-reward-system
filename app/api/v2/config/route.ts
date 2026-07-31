@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import type { TablesUpdate } from '@/types/supabase'
 
 export async function GET() {
   const supabase = await createClient()
@@ -91,7 +92,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'No family found' }, { status: 400 })
     }
 
-    const updateData: Record<string, unknown> = {}
+    const updateData: TablesUpdate<'configurations'> = {}
     if (pointsToMinutes !== undefined) updateData.points_to_minutes = pointsToMinutes
     if (pointsToDollars !== undefined) updateData.points_to_dollars = pointsToDollars
     if (christmasGoal !== undefined) updateData.christmas_goal = christmasGoal

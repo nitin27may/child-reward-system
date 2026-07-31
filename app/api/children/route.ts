@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import type { TablesUpdate } from '@/types/supabase'
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient()
@@ -98,7 +99,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, name, dateOfBirth, avatarUrl, avatar_color, canViewDashboard, can_view_dashboard, isActive, email } = body
 
-    const updateData: Record<string, unknown> = {}
+    const updateData: TablesUpdate<'children'> = {}
     if (name !== undefined) updateData.name = name
     if (email !== undefined) updateData.email = email
     if (dateOfBirth !== undefined) updateData.date_of_birth = dateOfBirth

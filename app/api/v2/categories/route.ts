@@ -1,5 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import type { TablesUpdate } from '@/types/supabase'
+
+/** categories.key is NOT NULL and unique per family; build one from the name. */
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
 
 export async function GET() {
   const supabase = await createClient()
@@ -49,7 +58,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { name, emoji, maxPoints, description, sortOrder } = body
+    const { name, key, icon, max_points: maxPoints, description, order_index: orderIndex } = body
+
+    if (!name) {
+      return NextResponse.json({ error: 'Category name required' }, { status: 400 })
+    }
 
     // Get user's family_id
     const { data: profile } = await supabase
@@ -67,10 +80,13 @@ export async function POST(request: NextRequest) {
       .insert({
         family_id: profile.family_id,
         name,
-        emoji: emoji || '⭐',
-        max_points: maxPoints || 3,
-        description: description || null,
-        sort_order: sortOrder || 0,
+        // `key` is NOT NULL with no default; derive a slug when the client
+        // omits it so category creation cannot fail on a missing column.
+        key: key || slugify(name),
+        icon: icon || '⭐',
+        max_points: maxPoints ?? 3,
+        description: description ?? null,
+        order_index: orderIndex ?? 0,
       })
       .select()
       .single()
@@ -95,18 +111,28 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, name, emoji, maxPoints, description, sortOrder, isActive } = body
+    const {
+      id,
+      name,
+      key,
+      icon,
+      max_points: maxPoints,
+      description,
+      order_index: orderIndex,
+      is_active: isActive,
+    } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Category ID required' }, { status: 400 })
     }
 
-    const updateData: Record<string, unknown> = {}
+    const updateData: TablesUpdate<'categories'> = {}
     if (name !== undefined) updateData.name = name
-    if (emoji !== undefined) updateData.emoji = emoji
+    if (key !== undefined) updateData.key = key
+    if (icon !== undefined) updateData.icon = icon
     if (maxPoints !== undefined) updateData.max_points = maxPoints
     if (description !== undefined) updateData.description = description
-    if (sortOrder !== undefined) updateData.sort_order = sortOrder
+    if (orderIndex !== undefined) updateData.order_index = orderIndex
     if (isActive !== undefined) updateData.is_active = isActive
 
     const { data: category, error } = await supabase
