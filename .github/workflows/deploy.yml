@@ -115,17 +115,23 @@ jobs:
       - name: Build
         run: vercel build ${{ steps.target.outputs.flag }} --scope=$VERCEL_SCOPE
 
-      # Non-interactive `vercel deploy` writes a JSON result object to stdout,
-      # not a bare URL — capturing the raw output would yield the whole blob.
+      # The CLI's stdout format is not stable across environments: it emits a
+      # JSON result object when it detects an agent/non-interactive host, and
+      # plain progress output ending in a bare URL on a normal CI runner.
+      # Parse JSON when it is JSON, otherwise take the last deployment URL.
       - name: Deploy
         id: deploy
         run: |
           set -o pipefail
-          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --scope=$VERCEL_SCOPE | tee deploy.json
+          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} --scope=$VERCEL_SCOPE | tee deploy.out
 
-          url=$(jq -r '.deployment.url // empty' deploy.json)
+          url=$(jq -r '.deployment.url // empty' deploy.out 2>/dev/null || true)
           if [ -z "$url" ]; then
-            echo "::error::Deploy did not return a URL"
+            url=$(grep -oE 'https://[A-Za-z0-9._-]+\.vercel\.app' deploy.out | tail -1 || true)
+          fi
+
+          if [ -z "$url" ]; then
+            echo "::error::Deploy succeeded but no URL could be parsed from the output"
             exit 1
           fi
 
