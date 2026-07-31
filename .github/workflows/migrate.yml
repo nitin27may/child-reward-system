@@ -1,0 +1,76 @@
+name: Migrate Supabase
+
+# Manual only — never triggered by a push. Applies supabase/migrations/*.sql to
+# the linked remote project. Code deploys are handled separately by deploy.yml.
+#
+# Recommended: in repo Settings > Environments, add required reviewers to the
+# `production` environment below so a real migration needs an approval click.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type MIGRATE to confirm you intend to touch the database'
+        required: true
+        default: ''
+      dry_run:
+        description: 'List pending migrations without applying them'
+        type: boolean
+        required: true
+        default: true
+
+concurrency:
+  group: supabase-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Apply migrations
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Check confirmation
+        if: inputs.confirm != 'MIGRATE'
+        run: |
+          echo "::error::Confirmation failed. Re-run and type MIGRATE in the confirm field."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+
+      # Always runs, including on dry runs. Read this output before applying:
+      # a migration present locally but absent from the remote history means
+      # `db push` will try to replay it against an already-populated database.
+      # Fix that with `supabase migration repair --status applied <version>`.
+      - name: Show migration status
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase migration list --linked | tee status.txt
+          {
+            echo '## Migration status'
+            echo '```'
+            cat status.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply migrations
+        if: inputs.dry_run == false
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --linked
+
+      - name: Dry run notice
+        if: inputs.dry_run == true
+        run: echo "::notice::Dry run — nothing was applied. Re-run with dry_run unchecked to migrate."

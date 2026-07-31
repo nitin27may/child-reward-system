@@ -162,7 +162,7 @@ export default function DashboardPage() {
               <Sparkles className="h-8 w-8 text-blue-600" />
             </div>
             <h2 className="text-xl font-bold text-slate-900 mb-2">Ready to Start!</h2>
-            <p className="text-slate-600 mb-6">Begin tracking {selectedChild.name}'s daily behaviors.</p>
+            <p className="text-slate-600 mb-6">Begin tracking {selectedChild.name}&apos;s daily behaviors.</p>
             <Link href="/tracking">
               <Button size="lg" className="w-full">
                 <Calendar className="mr-2 h-5 w-5" />

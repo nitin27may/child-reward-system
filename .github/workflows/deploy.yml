@@ -1,0 +1,115 @@
+name: Deploy
+
+# This workflow owns all deployments. The Vercel project is deliberately NOT
+# connected to this GitHub repo — if it were, Vercel would auto-deploy on push
+# as well and every commit would build twice.
+#
+# Supabase credentials are not GitHub secrets. `vercel pull` fetches them from
+# the Vercel project into .vercel/.env.<target>.local, and `vercel build`
+# inlines them from there. Only the Vercel token lives in GitHub.
+#
+# Database migrations are NOT applied here. They run from migrate.yml, manually.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  ci:
+    name: Lint & typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Report-only for now: the repo carries ~25 pre-existing lint errors
+      # (no-explicit-any and react-hooks violations across the page components)
+      # that predate this pipeline. Drop continue-on-error once they are cleared.
+      - name: Lint (report-only)
+        run: npm run lint
+        continue-on-error: true
+
+      # This one is blocking — it passes clean today and catches the class of
+      # error that actually breaks a deploy.
+      - name: Typecheck
+        run: npm run typecheck
+
+  deploy:
+    name: Build & deploy
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@58
+
+      - name: Resolve target environment
+        id: target
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "environment=production" >> "$GITHUB_OUTPUT"
+            echo "flag=--prod" >> "$GITHUB_OUTPUT"
+          else
+            echo "environment=preview" >> "$GITHUB_OUTPUT"
+            echo "flag=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=${{ steps.target.outputs.environment }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      # scripts/build-sw.mjs reads GITHUB_SHA here to stamp the service worker
+      # cache names, so each deploy evicts the previous deploy's caches.
+      - name: Build
+        run: vercel build ${{ steps.target.outputs.flag }} --token=${{ secrets.VERCEL_TOKEN }}
+
+      # Non-interactive `vercel deploy` writes a JSON result object to stdout,
+      # not a bare URL — capturing the raw output would yield the whole blob.
+      - name: Deploy
+        id: deploy
+        run: |
+          set -o pipefail
+          vercel deploy --prebuilt ${{ steps.target.outputs.flag }} \
+            --token=${{ secrets.VERCEL_TOKEN }} | tee deploy.json
+
+          url=$(jq -r '.deployment.url // empty' deploy.json)
+          if [ -z "$url" ]; then
+            echo "::error::Deploy did not return a URL"
+            exit 1
+          fi
+
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed to <$url>" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.number }}" \
+            --body "Preview deployment: ${{ steps.deploy.outputs.url }}"

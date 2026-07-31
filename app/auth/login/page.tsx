@@ -158,7 +158,7 @@ function LoginForm() {
           <Trophy className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold">Welcome Back!</CardTitle>
-          <CardDescription>Sign in to manage your family's rewards</CardDescription>
+          <CardDescription>Sign in to manage your family&apos;s rewards</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -247,7 +247,7 @@ function LoginForm() {
           </form>
 
           <div className="mt-6 text-center text-sm">
-            <span className="text-slate-600">Don't have an account? </span>
+            <span className="text-slate-600">Don&apos;t have an account? </span>
             <Link href="/auth/signup" className="text-blue-600 hover:text-blue-700 font-medium">
               Create Family Account
             </Link>

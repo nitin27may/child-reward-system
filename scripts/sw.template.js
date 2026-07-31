@@ -1,6 +1,10 @@
-const CACHE_NAME = 'reward-tracker-v1';
-const STATIC_CACHE = 'static-v1';
-const DYNAMIC_CACHE = 'dynamic-v1';
+// Source template for public/sw.js — do not edit the generated file.
+// scripts/build-sw.mjs stamps the build id below and writes public/sw.js
+// during `prebuild`, so every deploy gets fresh cache names and the
+// activate handler evicts the previous deploy's caches.
+const BUILD_ID = '__BUILD_ID__';
+const STATIC_CACHE = `static-${BUILD_ID}`;
+const DYNAMIC_CACHE = `dynamic-${BUILD_ID}`;
 
 // Assets to cache immediately on install
 const STATIC_ASSETS = [
@@ -13,7 +17,7 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker...');
+  console.log('[SW] Installing service worker...', BUILD_ID);
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       console.log('[SW] Caching static assets');
@@ -25,7 +29,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker...');
+  console.log('[SW] Activating service worker...', BUILD_ID);
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(

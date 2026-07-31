@@ -10,7 +10,9 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+# Matches the linked remote (17.6.1.063). Keep these in step, otherwise
+# `supabase start` runs a different Postgres major than production.
+major_version = 17
 
 [db.pooler]
 enabled = false
@@ -34,8 +36,23 @@ file_size_limit = "50MiB"
 
 [auth]
 enabled = true
+# DANGER: these values configure the LOCAL stack only. `supabase config push`
+# is declarative and would overwrite the remote project's Site URL with the
+# localhost value below — which is exactly the misconfiguration that sends
+# Google SSO back to http://localhost:3000/?code=... instead of the app.
+# Manage the deployed allow-list in the dashboard (Authentication > URL
+# Configuration) and do not run `config push` against this project.
+#
+# Deployed values, for reference:
+#   Site URL:  https://child-reward-system.vercel.app
+#   Redirects: https://child-reward-system.vercel.app/**
+#              https://child-reward-system-*-nitin27mays-projects.vercel.app/**
+#              http://localhost:3000/**
 site_url = "http://127.0.0.1:3000"
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = [
+  "https://127.0.0.1:3000",
+  "http://localhost:3000/**",
+]
 jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10

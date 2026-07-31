@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Plain Node build scripts, not app code — the Next/TS browser rules
+    // (no-require-imports, browser globals) do not apply to them.
+    "scripts/**",
+    // Generated from scripts/sw.template.js at prebuild time.
+    "public/sw.js",
   ]),
 ]);
 

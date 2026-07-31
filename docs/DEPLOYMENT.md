@@ -1,454 +1,219 @@
 # Deployment Guide
 
-Complete guide for deploying the Child Reward System to production.
+How the Child Reward System is built, deployed, and migrated.
+
+## How it fits together
+
+```mermaid
+flowchart LR
+    subgraph gh["GitHub"]
+        PR["Pull request"]
+        MAIN["push to main"]
+        MIG["migrate.yml<br/>(manual dispatch)"]
+    end
+
+    subgraph ci["GitHub Actions"]
+        CI["ci job<br/>lint + typecheck"]
+        DEP["deploy job<br/>vercel pull / build / deploy"]
+    end
+
+    subgraph vc["Vercel"]
+        PREV["Preview deployment"]
+        PROD["Production<br/>child-reward-system.vercel.app"]
+        ENV[("Env vars<br/>NEXT_PUBLIC_SUPABASE_*")]
+    end
+
+    SB[("Supabase<br/>isxfggjnrcqviuigopbj")]
+
+    PR --> CI --> DEP --> PREV
+    MAIN --> CI
+    DEP --> PROD
+    ENV -.->|vercel pull| DEP
+    PREV --> SB
+    PROD --> SB
+    MIG -->|supabase db push| SB
+
+    classDef gitHub fill:#4b5563,stroke:#374151,color:#fff
+    classDef actions fill:#1e6f9f,stroke:#155a80,color:#fff
+    classDef vercel fill:#0f766e,stroke:#0b5c56,color:#fff
+    classDef data fill:#b45309,stroke:#92400e,color:#fff
+    class PR,MAIN,MIG gitHub
+    class CI,DEP actions
+    class PREV,PROD,ENV vercel
+    class SB data
+```
+
+Two independent pipelines:
+
+- **Code** deploys automatically. Every push to `main` goes to production; every PR gets a preview URL.
+- **Database** migrations are manual. Nothing in CI applies DDL on its own.
+
+## Important: Vercel Git integration is off
+
+The Vercel project is **not** connected to the GitHub repository. This is deliberate. If it were connected, Vercel would auto-deploy on push *and* `deploy.yml` would deploy, so every commit would build twice and race to production.
+
+If you ever connect it in the dashboard, disable auto-deploy at the same time by adding a `vercel.json`:
+
+```json
+{ "git": { "deploymentEnabled": { "main": false } } }
+```
 
 ## Prerequisites
 
-### Required Accounts
-1. **Supabase Account** (supabase.com) - Database & Auth
-2. **Vercel Account** (vercel.com) - Hosting
-3. **Google Cloud Console** (optional) - OAuth only
+- Node.js 22.x (pinned via `engines` in `package.json`)
+- npm 10.x
+- Vercel CLI 58+ (`npm i -g vercel@latest`)
+- Supabase CLI (`brew install supabase/tap/supabase`)
 
-### Local Requirements
-- Node.js 20.x or higher
-- npm 10.x or higher
-- Git for version control
+## Environment variables
 
----
+The application reads exactly two variables. Both are `NEXT_PUBLIC_*`, inlined into the client bundle at build time, and safe to expose — the anon key is only as powerful as the RLS policies in `supabase/migrations/` permit.
 
-## Supabase Setup
+| Variable | Where it lives |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Vercel (all 3 environments), local `.env` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel (all 3 environments), local `.env` |
 
-### 1. Create Project
+`SUPABASE_ACCESS_TOKEN` is a CLI credential for `gen types` / `db push`. It belongs in your local `.env` and in GitHub secrets — **never** in Vercel.
 
-1. Visit [supabase.com](https://supabase.com) and create account
-2. Click "New Project"
-3. Configure:
-   - **Name:** child-reward-system-prod
-   - **Database Password:** Generate strong password (save it!)
-   - **Region:** Choose closest to users
-   - **Plan:** Free or Pro
+Copy `.env.example` to `.env` to start locally.
 
-4. Wait ~2 minutes for initialization
+### Gotcha: sensitive env vars break the build
 
-### 2. Database Setup
+`vercel env add` marks variables **sensitive by default**. Sensitive values cannot be read back, so `vercel pull` writes the literal string `[SENSITIVE]` instead of the value, and the build then dies with:
 
-#### Using SQL Editor (Recommended):
-
-1. Navigate to **SQL Editor** in dashboard
-2. Copy entire [supabase/schema.sql](../supabase/schema.sql)
-3. Paste and click **Run**
-4. Verify: **Database** → **Tables** (should see 10 tables)
-
-#### Verify Setup:
-
-```sql
--- Check all tables exist
-SELECT table_name FROM information_schema.tables 
-WHERE table_schema = 'public' ORDER BY table_name;
-
--- Check RLS enabled
-SELECT tablename, rowsecurity FROM pg_tables 
-WHERE schemaname = 'public';
-
--- Check functions exist
-SELECT routine_name FROM information_schema.routines 
-WHERE routine_schema = 'public';
+```
+Error: Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.
+Export encountered an error on /_not-found/page
 ```
 
-### 3. Apply Migrations
-
-Run in order:
-
-1. Open [supabase/migrations/20260105_add_aggregate_functions.sql](../supabase/migrations/20260105_add_aggregate_functions.sql)
-2. Copy, paste, **Run** in SQL Editor
-3. Repeat for:
-   - `20260105_fix_weekly_summary_function.sql`
-   - `20260105_add_target_date_to_config.sql`
-
-### 4. Configure Authentication
-
-#### Email/Password (Enabled by default):
-- Go to **Authentication** → **Providers**
-- Email should be enabled
-- Optionally customize email templates
-
-#### Google OAuth:
-
-**Create OAuth Credentials:**
-1. Visit [Google Cloud Console](https://console.cloud.google.com)
-2. Create project or select existing
-3. Enable **Google+ API**
-4. **Credentials** → **Create** → **OAuth 2.0 Client ID**
-5. Application type: **Web application**
-6. Authorized origins: `https://your-project.supabase.co`
-7. Redirect URIs: `https://your-project.supabase.co/auth/v1/callback`
-8. Copy **Client ID** and **Client Secret**
-
-**Configure in Supabase:**
-1. **Authentication** → **Providers** → **Google**
-2. Enable Google
-3. Paste Client ID and Secret
-4. Click **Save**
-
-**Add Redirect URLs:**
-- Development: `http://localhost:3000/auth/callback`
-- Production: `https://yourdomain.com/auth/callback`
-
-### 5. Get API Keys
-
-1. **Project Settings** → **API**
-2. Copy:
-   - **Project URL:** `https://xxxxx.supabase.co`
-   - **anon public key:** `eyJhbGciOi...`
-
----
-
-## Environment Variables
-
-### Local Development
-
-Create `.env.local`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-NODE_ENV=development
-```
-
-### Vercel Production
-
-Add in Vercel Dashboard:
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-**Security:**
-- ✅ Never commit `.env.local`
-- ✅ Add to `.gitignore`
-- ✅ Use different projects for dev/staging/prod
-- ✅ Rotate keys if exposed
-
----
-
-## Vercel Deployment
-
-### GitHub Integration (Recommended)
-
-1. **Push to GitHub:**
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/username/child-reward-system.git
-git push -u origin main
-```
-
-2. **Import to Vercel:**
-   - Visit [vercel.com](https://vercel.com)
-   - Click **Add New Project**
-   - Import GitHub repository
-   - Configure:
-     - Framework: Next.js
-     - Root: `./`
-     - Build: `npm run build`
-     - Output: `.next`
-
-3. **Add Environment Variables:**
-   - Expand **Environment Variables**
-   - Add both Supabase variables
-   - Select all environments
-
-4. **Deploy:**
-   - Click **Deploy**
-   - Wait ~2-3 minutes
-
-**Continuous Deployment:**
-- Production: Commits to `main`
-- Preview: Pull requests
-- Rollback: Available in dashboard
-
-### Custom Domain
-
-1. **Vercel:** Settings → Domains → Add Domain
-2. **DNS:** Add CNAME → `cname.vercel-dns.com`
-3. **SSL:** Automatic via Vercel
-
----
-
-## Alternative Deployments
-
-### Docker
-
-Create `Dockerfile`:
-
-```dockerfile
-FROM node:20-alpine AS base
-
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-ENV NEXT_TELEMETRY_DISABLED 1
-RUN npm run build
-
-FROM base AS runner
-WORKDIR /app
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-EXPOSE 3000
-ENV PORT 3000
-
-CMD ["node", "server.js"]
-```
-
-Run:
-```bash
-docker build -t child-reward-system .
-docker run -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=your-url \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key \
-  child-reward-system
-```
-
-### Self-Hosted (PM2)
+Always pass `--no-sensitive` for the `NEXT_PUBLIC_*` pair:
 
 ```bash
-npm install -g pm2
-npm run build
-pm2 start npm --name "child-reward-system" -- start
-pm2 save
-pm2 startup
+vercel env add NEXT_PUBLIC_SUPABASE_URL production --no-sensitive
 ```
 
----
-
-## Post-Deployment Checklist
-
-### Verify Deployment:
-- [ ] Homepage loads
-- [ ] Auth works (email/password)
-- [ ] Google OAuth works
-- [ ] User can sign up
-- [ ] Family initialization works
-- [ ] Dashboard displays
-- [ ] Tracking saves
-- [ ] Weekly review works
-- [ ] Config updates persist
-
-### Test Data Isolation:
-- [ ] Create second family
-- [ ] Verify families separated
-- [ ] Test RLS policies
-
-### Performance:
-- [ ] Page load < 3s
-- [ ] API response < 1s
-- [ ] Test concurrent users
-
-### Security:
-- [ ] HTTPS enforced
-- [ ] RLS enabled
-- [ ] Test unauthorized access
-- [ ] Session management works
-
----
-
-## Monitoring & Maintenance
-
-### Vercel Analytics
-- Enable in Project → Analytics
-- Monitor Web Vitals
-- Track page load times
-
-### Supabase Monitoring
-- **Database** → Query Performance
-- **Authentication** → Users
-- **API** → Logs
-
-### Error Tracking (Sentry)
+To repair existing ones, re-add with `--no-sensitive --force`, then confirm the real value comes back:
 
 ```bash
-npm install @sentry/nextjs
-npx @sentry/wizard@latest -i nextjs
+vercel pull --yes --environment=production
+grep NEXT_PUBLIC_SUPABASE_URL .vercel/.env.production.local
 ```
 
----
+## GitHub secrets
 
-## Backup & Recovery
+| Secret | Purpose | How to get it |
+|---|---|---|
+| `VERCEL_TOKEN` | Auth for the deploy job | vercel.com/account/tokens |
+| `VERCEL_ORG_ID` | Target org | `.vercel/project.json` → `orgId` |
+| `VERCEL_PROJECT_ID` | Target project | `.vercel/project.json` → `projectId` |
+| `SUPABASE_ACCESS_TOKEN` | Migration workflow auth | supabase.com/dashboard/account/tokens |
+| `SUPABASE_DB_PASSWORD` | `supabase db push` | Supabase → Settings → Database |
+| `SUPABASE_PROJECT_REF` | Project to migrate | `isxfggjnrcqviuigopbj` |
 
-### Database Backups
+The Supabase **runtime** keys are intentionally absent — `vercel pull` supplies them from the Vercel project during the build, so they never need to exist in GitHub.
 
-**Supabase Free:** 7-day retention  
-**Supabase Pro:** 30-day PITR
-
-**Manual Backup:**
 ```bash
-pg_dump -h db.your-project.supabase.co \
-  -U postgres -d postgres -F c \
-  -f backup_$(date +%Y%m%d).dump
-
-# Restore
-pg_restore -h db.your-project.supabase.co \
-  -U postgres -d postgres -F c backup.dump
+printf '%s' "<value>" | gh secret set VERCEL_TOKEN
 ```
 
-### Disaster Recovery
+## Supabase auth configuration
 
-1. **Data Loss:** Restore from Supabase backup
-2. **Deployment Failure:** Rollback in Vercel
-3. **Database Corruption:** Restore + verify
+In the dashboard under **Authentication → URL Configuration**:
 
----
+- **Site URL:** `https://child-reward-system.vercel.app`
+- **Redirect URLs:**
+  - `https://child-reward-system.vercel.app/**`
+  - `https://child-reward-system-*-nitin27mays-projects.vercel.app/**`
+  - `http://localhost:3000/**`
 
-## Scaling
+The wildcard entry matters. `app/auth/login/page.tsx` and `app/auth/signup/page.tsx` build `redirectTo` from `window.location.origin`, so each preview deployment authenticates against its own hostname. Without the wildcard, logins work in production and fail on every preview.
 
-### Database Scaling
+`app/auth/callback/route.ts` resolves its redirect base from the `x-forwarded-host` header rather than `request.url`, because behind Vercel's proxy the latter carries the internal deployment host.
 
-**Free Tier Limits:**
-- 500 MB storage
-- 2 GB bandwidth/month
-- 500 concurrent connections
+### Google OAuth (optional)
 
-**When to Upgrade:**
-- DB > 400 MB
-- Bandwidth > 1.5 GB
-- Connection errors
+1. In [Google Cloud Console](https://console.cloud.google.com), create an OAuth 2.0 Client ID (Web application)
+2. Authorized origin: `https://isxfggjnrcqviuigopbj.supabase.co`
+3. Redirect URI: `https://isxfggjnrcqviuigopbj.supabase.co/auth/v1/callback`
+4. Paste the Client ID and Secret into Supabase → **Authentication → Providers → Google**
 
-**Pro Tier:**
-- 8 GB storage
-- 50 GB bandwidth
-- Dedicated resources
+Note the redirect URI points at Supabase, not at the app. Supabase then forwards to `/auth/callback` using the allow-list above.
 
-### Application Scaling
+## Database migrations
 
-**Vercel Free:** 100 GB bandwidth  
-**Vercel Pro:** 1 TB bandwidth
+The schema lives in `supabase/migrations/`. `20260101000000_initial_schema.sql` creates 10 tables, enables RLS on all of them, and defines 22 policies plus 12 triggers. `supabase/seed.sql` adds a demo family and is applied by `supabase db reset` locally.
 
-**Optimization:**
-- Add DB indexes
-- Use materialized views
-- Implement caching
-- Archive old data
+### Applying to the remote project
 
----
+Use the **Migrate Supabase** workflow in the Actions tab. It only runs on manual dispatch:
 
-## Troubleshooting
+1. Type `MIGRATE` in the confirm field
+2. Leave **dry_run** checked for the first run
+3. Read the migration status in the job summary
+4. Re-run with dry_run unchecked to apply
 
-### Build Fails
+Attach required reviewers to the `production` environment (Settings → Environments) if you want an approval gate.
+
+### Gotcha: migration history drift
+
+If a migration exists locally but is missing from the remote history, `db push` replays it against an already-populated database and fails. Check first:
+
 ```bash
-rm -rf .next node_modules
-npm install
-npm run build
+supabase migration list --linked
 ```
 
-### Supabase Connection Fails
+If a version is applied but unrecorded, mark it:
+
 ```bash
-# Verify env vars
-echo $NEXT_PUBLIC_SUPABASE_URL
-echo $NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-# Test connection
-curl https://your-project.supabase.co/rest/v1/
+supabase migration repair --status applied 20260101000000
 ```
 
-### RLS Blocking Queries
-```sql
--- Check policies
-SELECT * FROM pg_policies WHERE schemaname = 'public';
+### Local schema work
 
--- Debug (NOT for production)
-ALTER TABLE table_name DISABLE ROW LEVEL SECURITY;
+```bash
+supabase migration new <name>
+supabase db reset      # rebuild locally from migrations + seed.sql
+supabase db push       # apply to remote once you are satisfied
 ```
 
-### Google OAuth Not Working
-- Verify redirect URI matches exactly
-- Check consent screen configured
-- Verify Client ID/Secret correct
+`supabase/config.toml` pins `major_version = 17` to match the remote (17.6.1.063). Keep them in step or local behaviour diverges from production.
 
----
+After any schema change, regenerate types and fix the fallout in the same change:
 
-## Security Hardening
-
-### Checklist:
-- [ ] Env vars in secure storage
-- [ ] HTTPS enforced
-- [ ] CORS configured
-- [ ] Rate limiting (future)
-- [ ] 2FA for admin (future)
-- [ ] Daily backups enabled
-- [ ] Error messages sanitized
-
-### Security Headers
-
-Add to `next.config.ts`:
-
-```typescript
-async headers() {
-  return [
-    {
-      source: '/:path*',
-      headers: [
-        { key: 'X-Frame-Options', value: 'DENY' },
-        { key: 'X-Content-Type-Options', value: 'nosniff' },
-        { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-      ],
-    },
-  ]
-}
+```bash
+supabase gen types typescript --project-id isxfggjnrcqviuigopbj > types/supabase.ts
 ```
 
----
+## Manual deploy
 
-## Cost Estimation
+The workflow is the normal path, but the CLI does the same thing:
 
-### Free Tier (1-5 families)
-- Supabase Free: $0/month
-- Vercel Free: $0/month
-- **Total: $0/month**
+```bash
+vercel pull --yes --environment=production
+vercel build --prod
+vercel deploy --prebuilt --prod
+```
 
-### Pro Tier (10-50 families)
-- Supabase Pro: $25/month
-- Vercel Pro: $20/month
-- Domain: $15/year
-- **Total: ~$45/month**
+## Verifying a deploy
 
-### Scale Tier (50+ families)
-- Supabase Team: $599/month
-- Vercel Enterprise: Custom
-- Additional services: $30/month
-- **Total: Custom pricing**
+```bash
+B=https://child-reward-system.vercel.app
+curl -s -o /dev/null -w "%{http_code}\n" $B                        # 200
+curl -s -o /dev/null -w "%{http_code}\n" "$B/api/v2/dashboard"     # 401, not 500
+curl -s $B/sw.js | grep BUILD_ID                                   # commit SHA
+```
 
----
+A `500` from `/api/v2/dashboard` means the Supabase env vars did not reach the build. A `401` is correct — it proves RLS is rejecting an unauthenticated request.
 
-## Rollback Procedure
+## Service worker caching
 
-### Vercel:
-1. Dashboard → Deployments
-2. Find previous stable deployment
-3. Click **...** → Promote to Production
+`public/sw.js` is **generated** and gitignored. `scripts/build-sw.mjs` runs on `prebuild`, stamping `scripts/sw.template.js` with the commit SHA (`VERCEL_GIT_COMMIT_SHA`, falling back to `GITHUB_SHA`, then a local timestamp).
 
-### Database:
-1. Identify backup in Supabase
-2. Download or use PITR
-3. Restore to timestamp
-4. Verify integrity
+This exists because the cache names were previously fixed at `static-v1` / `dynamic-v1`. The activate handler evicts every cache whose key does not match the current names — with constant names it never evicted anything, so returning users kept an old app shell indefinitely. Edit the template, never `public/sw.js`.
 
----
+## Known issues
 
-**Deployment Guide Version:** 1.0  
-**Last Updated:** January 5, 2026
+- **~25 pre-existing lint errors** (`no-explicit-any`, `react-hooks` violations across the page components). The `lint` step in `deploy.yml` is `continue-on-error: true` until these are cleared; `typecheck` is the blocking gate. Remove that flag once lint is clean.
+- **`middleware.ts` naming is deprecated** in Next.js 16 — the build warns that the convention is now `proxy`. Harmless today, will need renaming before Next 17.
+- **`types/supabase.ts` is hand-written**, not CLI output, and the `Database` generic is not passed to `createBrowserClient` / `createServerClient`. Every Supabase query is therefore untyped.

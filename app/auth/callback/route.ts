@@ -7,6 +7,13 @@ export async function GET(request: Request) {
   const redirect = searchParams.get('redirect') ?? '/'
   const next = searchParams.get('next') ?? redirect
 
+  // Behind Vercel's proxy, request.url carries the internal deployment host,
+  // so redirecting to `origin` would drop the user on a URL that isn't the one
+  // they signed in from. x-forwarded-host holds the user-facing hostname.
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const isLocalEnv = process.env.NODE_ENV === 'development'
+  const base = isLocalEnv ? origin : forwardedHost ? `https://${forwardedHost}` : origin
+
   // Log for debugging
   console.log('[Auth Callback] Code present:', !!code, 'Redirect:', next)
 
@@ -16,7 +23,7 @@ export async function GET(request: Request) {
     
     if (error) {
       console.error('[Auth Callback] Exchange error:', error.message)
-      return NextResponse.redirect(`${origin}/auth/login?error=callback_failed&message=${encodeURIComponent(error.message)}`)
+      return NextResponse.redirect(`${base}/auth/login?error=callback_failed&message=${encodeURIComponent(error.message)}`)
     }
     
     if (data.user) {
@@ -61,7 +68,7 @@ export async function GET(request: Request) {
           }
 
           // Redirect child to dashboard
-          return NextResponse.redirect(`${origin}/`)
+          return NextResponse.redirect(`${base}/`)
         }
       }
 
@@ -76,16 +83,16 @@ export async function GET(request: Request) {
 
       if (!profile || !profile.family_id) {
         // New parent user - redirect to setup page
-        return NextResponse.redirect(`${origin}/auth/setup`)
+        return NextResponse.redirect(`${base}/auth/setup`)
       }
 
       // Existing user with family
-      return NextResponse.redirect(`${origin}${next}`)
+      return NextResponse.redirect(`${base}${next}`)
     }
   }
 
   // No code - this might be implicit flow with hash fragment
   // Client side will handle this
   console.log('[Auth Callback] No code, redirecting to login')
-  return NextResponse.redirect(`${origin}/auth/login?error=callback_failed`)
+  return NextResponse.redirect(`${base}/auth/login?error=callback_failed`)
 }
